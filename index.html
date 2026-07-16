@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Common Cartridge → Grav Helios Course Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { darkMode: 'media' }</script>
+<style>
+  .drop-zone.dragover { border-color: #60a5fa; background: #eff6ff; }
+  @media (prefers-color-scheme: dark) {
+    .drop-zone.dragover { border-color: #3b82f6; background: #1e3058; }
+  }
+  .file-selected.visible { display: flex; }
+  .tech-summary-body p  { margin-bottom: 0.75rem; }
+  .tech-summary-body ol { padding-left: 1.25rem; margin-bottom: 0.75rem; }
+  .tech-summary-body li { margin-bottom: 0.25rem; }
+  .tech-summary-body code { font-size: 12px; background: #fafaf9; border: 1px solid #d6d3d1; border-radius: 3px; padding: 1px 4px; }
+  @media (prefers-color-scheme: dark) {
+    .tech-summary-body code { background: #211f1e; border-color: #57534e; }
+  }
+  :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-color-scheme: dark) { :focus-visible { outline-color: #60a5fa; } }
+</style>
+</head>
+<body class="font-sans bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-stone-200 min-h-screen flex flex-col items-center py-8 px-4">
+
+<div class="w-full max-w-[600px]">
+
+  <div class="flex items-center gap-2.5 mb-4">
+    <div class="w-9 h-9 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center text-[19px] shrink-0" aria-hidden="true">🎓</div>
+    <div>
+      <h1 class="text-base font-semibold">Common Cartridge → Grav Helios Course Hub <span class="inline-block text-[11px] font-semibold px-[7px] py-px rounded-full bg-blue-100 dark:bg-[#1e3058] text-blue-700 dark:text-blue-400 align-middle ml-1 tracking-[0.02em]">v0.1.0 Beta</span></h1>
+      <div class="text-[13px] text-stone-500 dark:text-stone-400">Convert a Common Cartridge (.imscc) export to a Grav pages folder for Grav Helios Course Hub</div>
+    </div>
+  </div>
+
+  <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed"><strong>Have full control of your course content.</strong> <a href="https://github.com/hibbitts-design/grav-skeleton-helios-course-hub" class="text-blue-700 dark:text-blue-400">Grav Helios Course Hub</a> stores content in portable open Markdown files — no database, no vendor lock-in. You can also embed any page directly into Canvas, Moodle, or Brightspace with a simple URL parameter, and use your LMS as a partner for assignments and grading while keeping full access to your content. This converter gets you there from a Common Cartridge export.</p>
+
+  <nav aria-label="How it works">
+    <ol class="flex flex-col gap-2.5 mb-6 list-none p-0">
+      <li class="flex items-start gap-3 text-[15px] text-stone-500 dark:text-stone-400">
+        <div class="shrink-0 w-[22px] h-[22px] bg-blue-100 dark:bg-[#1e3058] text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold flex items-center justify-center mt-px" aria-hidden="true">1</div>
+        <span>In Canvas, go to <strong>Settings → Export Course Content</strong> and choose <strong>Common Cartridge 1.1</strong>. In other LMS platforms (Moodle, D2L, Blackboard), use their equivalent course export and select Common Cartridge format. Download the <code>.imscc</code> file.</span>
+      </li>
+      <li class="flex items-start gap-3 text-[15px] text-stone-500 dark:text-stone-400">
+        <div class="shrink-0 w-[22px] h-[22px] bg-blue-100 dark:bg-[#1e3058] text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold flex items-center justify-center mt-px" aria-hidden="true">2</div>
+        <span>Upload that file below and click <strong>Convert &amp; Download ZIP</strong>. A ZIP containing a <code>pages/{course-slug}/</code> folder ready for Grav will be downloaded.</span>
+      </li>
+      <li class="flex items-start gap-3 text-[15px] text-stone-500 dark:text-stone-400">
+        <div class="shrink-0 w-[22px] h-[22px] bg-blue-100 dark:bg-[#1e3058] text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold flex items-center justify-center mt-px" aria-hidden="true">3</div>
+        <span>Extract the ZIP and copy the <code>pages/{course-slug}/</code> folder into the <code>user/pages/</code> directory of your <a href="https://github.com/hibbitts-design/grav-skeleton-helios-course-hub" class="text-blue-700 dark:text-blue-400">Grav Helios Course Hub</a> installation.</span>
+      </li>
+      <li class="flex items-start gap-3 text-[15px] text-stone-500 dark:text-stone-400">
+        <div class="shrink-0 w-[22px] h-[22px] bg-blue-100 dark:bg-[#1e3058] text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold flex items-center justify-center mt-px" aria-hidden="true">4</div>
+        <span>Review the included <code>conversion-notes.txt</code> for a summary of what was converted, what was not included, and any warnings to address.</span>
+      </li>
+    </ol>
+  </nav>
+
+<div id="error-box" class="rounded-lg px-[14px] py-[10px] text-sm gap-2 items-start mb-4 bg-red-50 dark:bg-[#3b0a0a] border border-red-200 dark:border-red-900 text-red-800 dark:text-red-300" style="display:none" role="alert" aria-live="assertive">
+    <span aria-hidden="true">⚠</span> <span id="error-text"></span>
+  </div>
+
+  <div class="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl p-6 mb-4">
+    <h2 class="text-[17px] font-semibold mb-1">Upload your course cartridge</h2>
+    <p class="text-sm text-stone-500 dark:text-stone-400 mb-5">Upload your Common Cartridge export below.</p>
+
+    <form method="POST" action="convert.php" enctype="multipart/form-data" id="convert-form">
+
+      <div class="drop-zone border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg py-5 px-8 text-center cursor-pointer bg-stone-50 dark:bg-[#211f1e] transition-colors duration-150 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-[#1e3058]" id="drop-zone" role="button" tabindex="0" aria-label="Upload file — click or press Enter to browse">
+        <div class="text-[2rem] mb-2" aria-hidden="true">⬆</div>
+        <p class="text-[15px] font-medium mb-1">Drop your .imscc or .zip file here</p>
+        <p class="text-[13px] text-stone-400 dark:text-stone-500">or click to browse — max 500 MB</p>
+        <input type="file" name="imscc" id="file-input" accept=".imscc,.zip" class="hidden">
+      </div>
+
+      <div class="file-selected hidden items-center gap-2.5 bg-blue-50 dark:bg-[#1e3058] border border-blue-200 dark:border-blue-700 rounded-lg px-[14px] py-[10px] mb-3 mt-3" id="file-selected" aria-live="polite">
+        <span aria-hidden="true">📦</span>
+        <span class="text-sm font-medium text-blue-700 dark:text-blue-400 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" id="file-name"></span>
+        <span class="text-[13px] text-stone-500 dark:text-stone-400 whitespace-nowrap" id="file-size"></span>
+        <button type="button" class="bg-transparent border-0 cursor-pointer text-stone-400 dark:text-stone-500 text-[17px] px-0.5 leading-none hover:text-stone-700 dark:hover:text-stone-300" id="clear-btn" title="Remove file" aria-label="Remove file">✕</button>
+      </div>
+
+      <div class="mb-4 mt-3">
+        <label class="block text-[13px] font-medium text-stone-600 dark:text-stone-300 mb-1" for="course-slug">
+          Course slug <span class="font-normal text-stone-400 dark:text-stone-500">(optional — leave blank to derive from course title)</span>
+        </label>
+        <input type="text" name="course_slug" id="course-slug"
+               placeholder="e.g. my-course-2025"
+               class="w-full px-3 py-2 text-[14px] border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 placeholder-stone-400 dark:placeholder-stone-500 focus:outline-none focus:border-blue-500">
+      </div>
+
+      <div class="flex flex-col gap-[3px] mb-5">
+        <label class="flex items-center gap-[7px] text-[15px] cursor-pointer">
+          <input type="checkbox" name="strip_title_numbering" value="1" checked>
+          Clean up numbered titles
+        </label>
+        <span class="text-xs text-stone-400 dark:text-stone-500 pl-[21px]">Removes manual ordering prefixes (e.g. "1 Introduction" → "Introduction", "Module 2 - Basics" → "Basics") — redundant as Grav's own numbered folders provide the ordering.</span>
+        <label class="flex items-center gap-[7px] text-[15px] cursor-pointer mt-2">
+          <input type="checkbox" name="skip_files" value="1" checked>
+          Skip attached files (PDFs, videos, etc.)
+        </label>
+        <span class="text-xs text-stone-400 dark:text-stone-500 pl-[21px]">Omit non-image binary files from <code>web_resources/</code> — keeps the ZIP small. You can manually copy these files after import.</span>
+        <label class="flex items-center gap-[7px] text-[15px] cursor-pointer mt-2">
+          <input type="checkbox" name="skip_image_download" value="1">
+          Skip image download (use remote URLs)
+        </label>
+        <span class="text-xs text-stone-400 dark:text-stone-500 pl-[21px]">By default, images embedded in page content are downloaded and included in the ZIP. Enable this to keep original URLs instead — images still display, but from their remote source.</span>
+        <div class="mt-3 border border-stone-200 dark:border-stone-700 rounded-md px-3 pt-2 pb-3">
+          <p class="text-xs font-medium text-stone-500 dark:text-stone-400 mb-2">Default pages</p>
+          <div class="flex flex-col gap-[3px]">
+            <label class="flex items-center gap-[7px] text-[15px] cursor-pointer">
+              <input type="checkbox" name="include_essentials" value="1" checked>
+              Include Essentials page
+            </label>
+            <span class="text-xs text-stone-400 dark:text-stone-500 pl-[21px]">Adds an Essentials page with course title, code, license, and a placeholder for instructor info.</span>
+            <label class="flex items-center gap-[7px] text-[15px] cursor-pointer mt-2">
+              <input type="checkbox" name="include_resources" value="1" checked>
+              Include Resources page
+            </label>
+            <span class="text-xs text-stone-400 dark:text-stone-500 pl-[21px]">Adds a Resources placeholder page for links and reference materials.</span>
+            <label class="flex items-center gap-[7px] text-[15px] cursor-pointer mt-2">
+              <input type="checkbox" name="include_syllabus" value="1" checked>
+              Include Syllabus page (when no source content)
+            </label>
+            <span class="text-xs text-stone-400 dark:text-stone-500 pl-[21px]">Adds a Syllabus placeholder page when the cartridge contains no syllabus content. If a syllabus is present in the source, it is always included.</span>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="w-full py-[10px] text-[15px] font-medium bg-blue-700 dark:bg-blue-600 text-white border border-blue-800 dark:border-blue-500 rounded-lg cursor-pointer transition-colors duration-150 enabled:hover:bg-blue-800 dark:enabled:hover:bg-blue-700 disabled:opacity-40 disabled:cursor-default" id="convert-btn" disabled>
+        Convert &amp; Download ZIP
+      </button>
+
+      <p id="converting-note" class="text-xs text-stone-400 dark:text-stone-500 text-center mt-2" style="display:none">
+        Conversion in progress — large courses may take up to a minute. Please wait&hellip;
+      </p>
+
+      <input type="hidden" name="download_token" id="download-token">
+
+    </form>
+
+    <details class="mt-6 border-t border-stone-200 dark:border-stone-700 pt-4">
+      <summary class="text-[13px] text-stone-400 dark:text-stone-500 cursor-pointer select-none hover:text-stone-500 dark:hover:text-stone-400">What exactly does this do?</summary>
+      <div class="tech-summary-body mt-3 text-[13px] text-stone-500 dark:text-stone-400 leading-[1.7]">
+        <p>It's a self-contained PHP web app running on the server. You upload a Common Cartridge <code>.imscc</code> export, it parses the module structure and converts wiki page content to Markdown, then hands you back a ZIP ready to drop into Grav.</p>
+        <p><strong>What's converted?</strong></p>
+        <ol>
+          <li>Course modules → <code>chapter</code> landing pages with numbered child pages</li>
+          <li>Wiki pages → <code>course-page.md</code> Markdown files with YAML frontmatter</li>
+          <li>Module section headers (<code>ContextModuleSubHeader</code>) → <code>group:</code> frontmatter for visual grouping in the Course Hub sidebar</li>
+          <li>Vimeo and YouTube iframes → <code>[iframe]</code> and <code>[youtube]</code> shortcodes</li>
+          <li>A <code>module.md</code> card-grid listing page for all modules</li>
+        </ol>
+        <p><strong>What's not included?</strong><br>
+        Quizzes, discussions, and assignments have no equivalent in Helios Course Hub and are not included. A full count appears in <code>conversion-notes.txt</code> in the ZIP.</p>
+        <p><strong>What happens to your file?</strong><br>
+        The <code>.imscc</code> is extracted to a server temp directory, parsed, converted, and packaged. The temp files are immediately deleted after the ZIP is streamed to your browser — nothing is stored on the server.</p>
+      </div>
+    </details>
+  </div>
+
+  <div class="text-xs text-stone-400 dark:text-stone-500 text-center mt-8">
+    Built by <a href="https://hibbittsdesign.org" class="text-stone-400 dark:text-stone-500">Paul Hibbitts</a> and <a href="https://claude.ai/code" class="text-stone-400 dark:text-stone-500">Claude Code</a> ·
+    Requires <a href="https://github.com/hibbitts-design/grav-skeleton-helios-course-hub" class="text-stone-400 dark:text-stone-500">Grav Helios Course Hub</a>
+  </div>
+
+</div>
+
+<script>
+const dropZone     = document.getElementById('drop-zone');
+const fileInput    = document.getElementById('file-input');
+const fileSelected = document.getElementById('file-selected');
+const fileName     = document.getElementById('file-name');
+const fileSize     = document.getElementById('file-size');
+const clearBtn     = document.getElementById('clear-btn');
+const convertBtn   = document.getElementById('convert-btn');
+const errorBox     = document.getElementById('error-box');
+const errorText    = document.getElementById('error-text');
+const convertingNote = document.getElementById('converting-note');
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(1) + ' MB';
+}
+
+function showFile(file) {
+  errorBox.style.display = 'none';
+  if (file.size > 500 * 1024 * 1024) {
+    rejectFile('File exceeds the 500 MB limit.');
+    return;
+  }
+  dropZone.style.display = 'none';
+  fileSelected.classList.add('visible');
+  fileName.textContent = file.name;
+  fileSize.textContent = formatBytes(file.size);
+  convertBtn.disabled = false;
+  clearBtn.focus();
+}
+
+function clearFile() {
+  fileInput.value = '';
+  dropZone.style.display = '';
+  fileSelected.classList.remove('visible');
+  convertBtn.disabled = true;
+  dropZone.focus();
+}
+
+function rejectFile(msg) {
+  errorBox.style.display = 'none';
+  requestAnimationFrame(() => {
+    errorText.textContent = msg;
+    errorBox.style.display = 'flex';
+  });
+}
+
+function resetBtn() {
+  convertBtn.disabled = fileInput.files.length === 0;
+  convertBtn.textContent = 'Convert & Download ZIP';
+  convertingNote.style.display = 'none';
+}
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const name = file.name.toLowerCase();
+  if (!name.endsWith('.imscc') && !name.endsWith('.zip')) {
+    fileInput.value = '';
+    rejectFile('Please select a .imscc or .zip file exported from Canvas or another LMS.');
+    return;
+  }
+  showFile(file);
+});
+
+clearBtn.addEventListener('click', clearFile);
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const dname = file.name.toLowerCase();
+  if (!dname.endsWith('.imscc') && !dname.endsWith('.zip')) {
+    rejectFile('Please drop a .imscc or .zip file exported from Canvas or another LMS.');
+    return;
+  }
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  fileInput.files = dt.files;
+  showFile(file);
+});
+
+document.getElementById('convert-form').addEventListener('submit', () => {
+  const token = Math.random().toString(36).slice(2);
+  document.getElementById('download-token').value = token;
+  convertBtn.disabled = true;
+  convertBtn.textContent = 'Converting…';
+
+  // Scale timeout to file size: allow ~2s/MB for upload + 60s processing, min 120s, max 10min
+  const fileSizeMB = (fileInput.files[0]?.size ?? 0) / (1024 * 1024);
+  const timeoutMs  = Math.min(600000, Math.max(120000, Math.ceil(fileSizeMB) * 2000 + 60000));
+  const sizeNote   = fileSizeMB > 50
+    ? 'Large file — upload and conversion may take several minutes. Please wait…'
+    : 'Conversion in progress — large courses may take up to a minute. Please wait…';
+  convertingNote.textContent = sizeNote;
+  convertingNote.style.display = '';
+
+  // Poll for the cookie PHP sets just before streaming the file
+  const cookieName = 'download_ready_' + token;
+  const poll = setInterval(() => {
+    if (document.cookie.split(';').some(c => c.trim().startsWith(cookieName + '='))) {
+      clearInterval(poll);
+      clearTimeout(fallback);
+      document.cookie = cookieName + '=; max-age=0; path=/';
+      resetBtn();
+    }
+  }, 500);
+
+  // Safety fallback scaled to file size
+  const fallback = setTimeout(() => { clearInterval(poll); resetBtn(); }, timeoutMs);
+});
+
+const errParam = new URLSearchParams(window.location.search).get('error');
+if (errParam) {
+  errorText.textContent = errParam;
+  errorBox.style.display = 'flex';
+}
+
+// Browsers may restore this page from back/forward cache (e.g. after clicking
+// "← Try again" on the error page, or using the browser back button) with its JS
+// state frozen exactly as it was on the way out — file still selected, button still
+// showing "Converting…" and disabled. Force a clean reset whenever that happens.
+window.addEventListener('pageshow', e => {
+  if (e.persisted) {
+    clearFile();
+    resetBtn();
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+    "name": "hibbittsdesign/course-cartridge-converter",
+    "description": "Canvas/LMS Common Cartridge to Grav Helios Course Hub converter",
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "CH\\": "src/"
+        }
+    }
+}
