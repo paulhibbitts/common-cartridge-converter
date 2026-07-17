@@ -7,9 +7,9 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config = { darkMode: 'media' }</script>
 <style>
-  .drop-zone.dragover { border-color: #60a5fa; background: #eff6ff; }
+  .drop-zone.dragover { border-color: #45a08a; background: #eef8f5; }
   @media (prefers-color-scheme: dark) {
-    .drop-zone.dragover { border-color: #3b82f6; background: #1e3058; }
+    .drop-zone.dragover { border-color: #4fb89f; background: #163d33; }
   }
   .file-selected.visible { display: flex; }
   .tech-summary-body p  { margin-bottom: 0.75rem; }
@@ -19,8 +19,8 @@
   @media (prefers-color-scheme: dark) {
     .tech-summary-body code { background: #211f1e; border-color: #57534e; }
   }
-  :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; border-radius: 4px; }
-  @media (prefers-color-scheme: dark) { :focus-visible { outline-color: #60a5fa; } }
+  :focus-visible { outline: 2px solid #2f8f7a; outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-color-scheme: dark) { :focus-visible { outline-color: #4fb89f; } }
 </style>
 </head>
 <body class="font-sans bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-stone-200 min-h-screen flex flex-col items-center py-8 px-4">
@@ -28,31 +28,31 @@
 <div class="w-full max-w-[600px]">
 
   <div class="flex items-center gap-2.5 mb-4">
-    <div class="w-9 h-9 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center text-[19px] shrink-0" aria-hidden="true">🎓</div>
+    <div class="w-9 h-9 bg-teal-100 dark:bg-teal-900 rounded-lg flex items-center justify-center text-[19px] shrink-0" aria-hidden="true">🎓</div>
     <div>
-      <h1 class="text-base font-semibold">Common Cartridge → Grav Helios Course Hub <span class="inline-block text-[11px] font-semibold px-[7px] py-px rounded-full bg-blue-100 dark:bg-[#1e3058] text-blue-700 dark:text-blue-400 align-middle ml-1 tracking-[0.02em]">v0.1.0 Beta</span></h1>
+      <h1 class="text-base font-semibold">Common Cartridge → Grav Helios Course Hub <span class="inline-block text-[11px] font-semibold px-[7px] py-px rounded-full bg-teal-100 dark:bg-[#163d33] text-teal-700 dark:text-teal-400 align-middle ml-1 tracking-[0.02em]">v0.9.0 Beta</span></h1>
       <div class="text-[13px] text-stone-500 dark:text-stone-400">Convert a Common Cartridge (.imscc) export to a Grav pages folder for Grav Helios Course Hub</div>
     </div>
   </div>
 
-  <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed"><strong>Have full control of your course content.</strong> <a href="https://github.com/hibbitts-design/grav-skeleton-helios-course-hub" class="text-blue-700 dark:text-blue-400">Grav Helios Course Hub</a> stores content in portable open Markdown files — no database, no vendor lock-in. You can also embed any page directly into Canvas, Moodle, or Brightspace with a simple URL parameter, and use your LMS as a partner for assignments and grading while keeping full access to your content. This converter gets you there from a Common Cartridge export.</p>
+  <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed"><strong>Have full control of your course content.</strong> <a href="https://github.com/hibbitts-design/grav-skeleton-helios-course-hub" class="text-teal-700 dark:text-teal-400 underline underline-offset-2">Grav Helios Course Hub</a> stores content in portable open Markdown files — no database, no vendor lock-in. You can also embed any page directly into Canvas, Moodle, or Brightspace with a simple URL parameter, and use your LMS as a partner for assignments and grading while keeping full access to your content. This converter gets you there from a Common Cartridge export.</p>
 
   <nav aria-label="How it works">
     <ol class="flex flex-col gap-2.5 mb-6 list-none p-0">
       <li class="flex items-start gap-3 text-[15px] text-stone-500 dark:text-stone-400">
-        <div class="shrink-0 w-[22px] h-[22px] bg-blue-100 dark:bg-[#1e3058] text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold flex items-center justify-center mt-px" aria-hidden="true">1</div>
+        <div class="shrink-0 w-[22px] h-[22px] bg-teal-100 dark:bg-[#163d33] text-teal-700 dark:text-teal-400 rounded-full text-xs font-semibold flex items-center justify-center mt-px" aria-hidden="true">1</div>
         <span>In Canvas, go to <strong>Settings → Export Course Content</strong> and choose <strong>Common Cartridge 1.1</strong>. In other LMS platforms (Moodle, D2L, Blackboard), use their equivalent course export and select Common Cartridge format. Download the <code>.imscc</code> file.</span>
       </li>
       <li class="flex items-start gap-3 text-[15px] text-stone-500 dark:text-stone-400">
-        <div class="shrink-0 w-[22px] h-[22px] bg-blue-100 dark:bg-[#1e3058] text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold flex items-center justify-center mt-px" aria-hidden="true">2</div>
+        <div class="shrink-0 w-[22px] h-[22px] bg-teal-100 dark:bg-[#163d33] text-teal-700 dark:text-teal-400 rounded-full text-xs font-semibold flex items-center justify-center mt-px" aria-hidden="true">2</div>
         <span>Upload that file below and click <strong>Convert &amp; Download ZIP</strong>. A ZIP containing a <code>pages/{course-slug}/</code> folder ready for Grav will be downloaded.</span>
       </li>
       <li class="flex items-start gap-3 text-[15px] text-stone-500 dark:text-stone-400">
-        <div class="shrink-0 w-[22px] h-[22px] bg-blue-100 dark:bg-[#1e3058] text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold flex items-center justify-center mt-px" aria-hidden="true">3</div>
-        <span>Extract the ZIP and copy the <code>pages/{course-slug}/</code> folder into the <code>user/pages/</code> directory of your <a href="https://github.com/hibbitts-design/grav-skeleton-helios-course-hub" class="text-blue-700 dark:text-blue-400">Grav Helios Course Hub</a> installation.</span>
+        <div class="shrink-0 w-[22px] h-[22px] bg-teal-100 dark:bg-[#163d33] text-teal-700 dark:text-teal-400 rounded-full text-xs font-semibold flex items-center justify-center mt-px" aria-hidden="true">3</div>
+        <span>Extract the ZIP and copy the <code>pages/{course-slug}/</code> folder into the <code>user/pages/</code> directory of your <a href="https://github.com/hibbitts-design/grav-skeleton-helios-course-hub" class="text-teal-700 dark:text-teal-400 underline underline-offset-2">Grav Helios Course Hub</a> installation.</span>
       </li>
       <li class="flex items-start gap-3 text-[15px] text-stone-500 dark:text-stone-400">
-        <div class="shrink-0 w-[22px] h-[22px] bg-blue-100 dark:bg-[#1e3058] text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold flex items-center justify-center mt-px" aria-hidden="true">4</div>
+        <div class="shrink-0 w-[22px] h-[22px] bg-teal-100 dark:bg-[#163d33] text-teal-700 dark:text-teal-400 rounded-full text-xs font-semibold flex items-center justify-center mt-px" aria-hidden="true">4</div>
         <span>Review the included <code>conversion-notes.txt</code> for a summary of what was converted, what was not included, and any warnings to address.</span>
       </li>
     </ol>
@@ -68,16 +68,16 @@
 
     <form method="POST" action="convert.php" enctype="multipart/form-data" id="convert-form">
 
-      <div class="drop-zone border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg py-5 px-8 text-center cursor-pointer bg-stone-50 dark:bg-[#211f1e] transition-colors duration-150 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-[#1e3058]" id="drop-zone" role="button" tabindex="0" aria-label="Upload file — click or press Enter to browse">
+      <div class="drop-zone border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg py-5 px-8 text-center cursor-pointer bg-stone-50 dark:bg-[#211f1e] transition-colors duration-150 hover:border-teal-400 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-[#163d33]" id="drop-zone" role="button" tabindex="0" aria-label="Upload file — click or press Enter to browse">
         <div class="text-[2rem] mb-2" aria-hidden="true">⬆</div>
         <p class="text-[15px] font-medium mb-1">Drop your .imscc or .zip file here</p>
         <p class="text-[13px] text-stone-400 dark:text-stone-500">or click to browse — max 500 MB</p>
         <input type="file" name="imscc" id="file-input" accept=".imscc,.zip" class="hidden">
       </div>
 
-      <div class="file-selected hidden items-center gap-2.5 bg-blue-50 dark:bg-[#1e3058] border border-blue-200 dark:border-blue-700 rounded-lg px-[14px] py-[10px] mb-3 mt-3" id="file-selected" aria-live="polite">
+      <div class="file-selected hidden items-center gap-2.5 bg-teal-50 dark:bg-[#163d33] border border-teal-200 dark:border-teal-700 rounded-lg px-[14px] py-[10px] mb-3 mt-3" id="file-selected" aria-live="polite">
         <span aria-hidden="true">📦</span>
-        <span class="text-sm font-medium text-blue-700 dark:text-blue-400 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" id="file-name"></span>
+        <span class="text-sm font-medium text-teal-700 dark:text-teal-400 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" id="file-name"></span>
         <span class="text-[13px] text-stone-500 dark:text-stone-400 whitespace-nowrap" id="file-size"></span>
         <button type="button" class="bg-transparent border-0 cursor-pointer text-stone-400 dark:text-stone-500 text-[17px] px-0.5 leading-none hover:text-stone-700 dark:hover:text-stone-300" id="clear-btn" title="Remove file" aria-label="Remove file">✕</button>
       </div>
@@ -88,7 +88,7 @@
         </label>
         <input type="text" name="course_slug" id="course-slug"
                placeholder="e.g. my-course-2025"
-               class="w-full px-3 py-2 text-[14px] border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 placeholder-stone-400 dark:placeholder-stone-500 focus:outline-none focus:border-blue-500">
+               class="w-full px-3 py-2 text-[14px] border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 placeholder-stone-400 dark:placeholder-stone-500 focus:outline-none focus:border-teal-500">
       </div>
 
       <div class="flex flex-col gap-[3px] mb-5">
@@ -129,7 +129,7 @@
         </div>
       </div>
 
-      <button type="submit" class="w-full py-[10px] text-[15px] font-medium bg-blue-700 dark:bg-blue-600 text-white border border-blue-800 dark:border-blue-500 rounded-lg cursor-pointer transition-colors duration-150 enabled:hover:bg-blue-800 dark:enabled:hover:bg-blue-700 disabled:opacity-40 disabled:cursor-default" id="convert-btn" disabled>
+      <button type="submit" class="w-full py-[10px] text-[15px] font-medium bg-teal-700 dark:bg-teal-600 text-white border border-teal-800 dark:border-teal-500 rounded-lg cursor-pointer transition-colors duration-150 enabled:hover:bg-teal-800 dark:enabled:hover:bg-teal-700 disabled:opacity-40 disabled:cursor-default" id="convert-btn" disabled>
         Convert &amp; Download ZIP
       </button>
 
@@ -161,9 +161,10 @@
     </details>
   </div>
 
-  <div class="text-xs text-stone-400 dark:text-stone-500 text-center mt-8">
-    Built by <a href="https://hibbittsdesign.org" class="text-stone-400 dark:text-stone-500">Paul Hibbitts</a> and <a href="https://claude.ai/code" class="text-stone-400 dark:text-stone-500">Claude Code</a> ·
-    Requires <a href="https://github.com/hibbitts-design/grav-skeleton-helios-course-hub" class="text-stone-400 dark:text-stone-500">Grav Helios Course Hub</a>
+  <div class="text-[13px] text-stone-400 dark:text-stone-500 text-center mt-8">
+    Built by <a href="https://hibbittsdesign.org" class="text-stone-400 dark:text-stone-500 underline underline-offset-2">Paul Hibbitts</a> and <a href="https://claude.ai/code" class="text-stone-400 dark:text-stone-500 underline underline-offset-2">Claude Code</a> ·
+    Requires <a href="https://www.hibbittsdesign.org/Grav-Helios-Course-Hub-2a4bc7abbf574a61a65c891d226006c4" class="text-stone-400 dark:text-stone-500 underline underline-offset-2">Grav Helios Course Hub</a> and the <a href="https://getgrav.org/premium/helios" class="text-stone-400 dark:text-stone-500 underline underline-offset-2">Grav Premium Helios Theme</a> ·
+    <a href="https://github.com/paulhibbitts/common-cartridge-converter" class="text-stone-400 dark:text-stone-500 underline underline-offset-2">GitHub</a>
   </div>
 
 </div>
