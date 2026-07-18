@@ -22,6 +22,8 @@
   }
   :focus-visible { outline: 2px solid #2f8f7a; outline-offset: 2px; border-radius: 4px; }
   @media (prefers-color-scheme: dark) { :focus-visible { outline-color: #4fb89f; } }
+  input[type="checkbox"] { accent-color: #2f8f7a; }
+  @media (prefers-color-scheme: dark) { input[type="checkbox"] { accent-color: #4fb89f; } }
 </style>
 </head>
 <body class="font-sans bg-stone-100 dark:bg-stone-900 text-stone-900 dark:text-stone-200 min-h-screen flex flex-col items-center py-8 px-4">
@@ -70,7 +72,7 @@
     <span aria-hidden="true">⚠</span> <span id="error-text"></span>
   </div>
 
-  <div class="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl p-6 mb-4">
+  <div class="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl p-6 mb-4 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)]">
     <h2 class="text-[17px] font-semibold mb-1">Upload your course cartridge</h2>
     <p class="text-sm text-stone-500 dark:text-stone-400 mb-5">Upload your Common Cartridge export below.</p>
 
@@ -137,8 +139,9 @@
         </div>
       </div>
 
-      <button type="submit" class="w-full py-[10px] text-[15px] font-medium bg-teal-700 dark:bg-teal-600 text-white border border-teal-800 dark:border-teal-500 rounded-lg cursor-pointer transition-colors duration-150 enabled:hover:bg-teal-800 dark:enabled:hover:bg-teal-700 disabled:opacity-40 disabled:cursor-default" id="convert-btn" disabled>
-        Convert &amp; Download ZIP
+      <button type="submit" class="w-full py-[10px] text-[15px] font-medium bg-teal-700 dark:bg-teal-600 text-white border border-teal-800 dark:border-teal-500 rounded-lg cursor-pointer transition-colors duration-150 enabled:hover:bg-teal-800 dark:enabled:hover:bg-teal-700 disabled:opacity-40 disabled:cursor-default inline-flex items-center justify-center gap-2" id="convert-btn" disabled>
+        <svg id="convert-spinner" class="hidden animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" stroke-opacity="0.3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+        <span id="convert-btn-text">Convert &amp; Download ZIP</span>
       </button>
 
       <p id="converting-note" class="text-xs text-stone-500 dark:text-stone-400 text-center mt-2" style="display:none">
@@ -185,6 +188,8 @@ const fileName     = document.getElementById('file-name');
 const fileSize     = document.getElementById('file-size');
 const clearBtn     = document.getElementById('clear-btn');
 const convertBtn   = document.getElementById('convert-btn');
+const convertBtnText = document.getElementById('convert-btn-text');
+const convertSpinner = document.getElementById('convert-spinner');
 const errorBox     = document.getElementById('error-box');
 const errorText    = document.getElementById('error-text');
 const convertingNote = document.getElementById('converting-note');
@@ -225,10 +230,14 @@ function rejectFile(msg) {
   });
 }
 
-function resetBtn() {
+function resetBtn(success = false) {
   convertBtn.disabled = fileInput.files.length === 0;
-  convertBtn.textContent = 'Convert & Download ZIP';
+  convertBtnText.textContent = success ? '✓ Conversion complete' : 'Convert & Download ZIP';
+  convertSpinner.classList.add('hidden');
   convertingNote.style.display = 'none';
+  if (success) {
+    setTimeout(() => { convertBtnText.textContent = 'Convert & Download ZIP'; }, 5000);
+  }
 }
 
 dropZone.addEventListener('click', () => fileInput.click());
@@ -270,7 +279,8 @@ document.getElementById('convert-form').addEventListener('submit', () => {
   const token = Math.random().toString(36).slice(2);
   document.getElementById('download-token').value = token;
   convertBtn.disabled = true;
-  convertBtn.textContent = 'Converting…';
+  convertBtnText.textContent = 'Converting…';
+  convertSpinner.classList.remove('hidden');
 
   // Scale timeout to file size: allow ~2s/MB for upload + 60s processing, min 120s, max 10min
   const fileSizeMB = (fileInput.files[0]?.size ?? 0) / (1024 * 1024);
@@ -288,7 +298,7 @@ document.getElementById('convert-form').addEventListener('submit', () => {
       clearInterval(poll);
       clearTimeout(fallback);
       document.cookie = cookieName + '=; max-age=0; path=/';
-      resetBtn();
+      resetBtn(true);
     }
   }, 500);
 
