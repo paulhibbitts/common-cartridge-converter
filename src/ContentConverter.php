@@ -147,10 +147,10 @@ class ContentConverter
         $title = html_entity_decode($title, ENT_QUOTES, 'UTF-8');
         $src   = html_entity_decode($src, ENT_QUOTES, 'UTF-8');
 
-        // YouTube — Helios Course Hub youtube plugin expects [plugin:youtube](url) link syntax
+        // YouTube — [youtube]url[/youtube] shortcode, same syntax the Pressbooks converter uses
         if (preg_match('/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/', $src, $m)
             || preg_match('/youtu\.be\/([a-zA-Z0-9_-]+)/', $src, $m)) {
-            return '[plugin:youtube](https://www.youtube.com/watch?v=' . $m[1] . ')';
+            return '[youtube]https://www.youtube.com/watch?v=' . $m[1] . '[/youtube]';
         }
 
         // Vimeo — link out since no supported embed shortcode
