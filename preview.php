@@ -15,28 +15,6 @@ const IMAGE_EXTENSIONS        = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bm
 
 header('Content-Type: application/json');
 
-function sendError(int $statusCode, string $message): void
-{
-    http_response_code($statusCode);
-    echo json_encode(['error' => $message]);
-    exit;
-}
-
-function cleanupDir(string $dir): void
-{
-    if (!is_dir($dir)) {
-        return;
-    }
-    $files = new \RecursiveIteratorIterator(
-        new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS),
-        \RecursiveIteratorIterator::CHILD_FIRST
-    );
-    foreach ($files as $f) {
-        $f->isDir() ? rmdir($f->getRealPath()) : unlink($f->getRealPath());
-    }
-    rmdir($dir);
-}
-
 // ── Upload validation ──────────────────────────────────────────────────────
 
 if (empty($_FILES) && isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > 0) {
@@ -52,8 +30,8 @@ if ($_FILES['imscc']['size'] > MAX_UPLOAD_BYTES) {
     sendError(400, 'File exceeds the 500 MB limit.');
 }
 
-$ext = strtolower(pathinfo($_FILES['imscc']['name'], PATHINFO_EXTENSION));
-if ($ext !== 'imscc' && $ext !== 'zip') {
+$uploadExt = strtolower(pathinfo($_FILES['imscc']['name'], PATHINFO_EXTENSION));
+if ($uploadExt !== 'imscc' && $uploadExt !== 'zip') {
     sendError(400, 'Please upload a .imscc or .zip file exported from Canvas or another LMS.');
 }
 
@@ -75,20 +53,12 @@ if ($zip->open($_FILES['imscc']['tmp_name']) !== true) {
     sendError(400, 'The uploaded file does not appear to be a valid .imscc (ZIP) file.');
 }
 
-// Same selective extraction as convert.php: always extract the course image and
-// embedded page images, only extract other attachments when "Skip attached files" is off.
 $toExtract = [];
 for ($i = 0; $i < $zip->numFiles; $i++) {
-    $name = $zip->getNameIndex($i);
-    if (strpos($name, 'web_resources/') === 0) {
-        $isCourseImage = strpos($name, 'web_resources/course_image/') === 0;
-        $ext           = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-        $isImage       = in_array($ext, IMAGE_EXTENSIONS, true);
-        if (!$isCourseImage && !$isImage && $skipFiles) {
-            continue;
-        }
+    $entryName = $zip->getNameIndex($i);
+    if (shouldExtractZipEntry($entryName, $skipFiles)) {
+        $toExtract[] = $entryName;
     }
-    $toExtract[] = $name;
 }
 $zip->extractTo($tmpDir, $toExtract);
 $zip->close();
@@ -129,6 +99,41 @@ echo json_encode(['pages' => array_map(fn($page) => formatPreviewPage($page, $im
 exit;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+function sendError(int $statusCode, string $message): void
+{
+    http_response_code($statusCode);
+    echo json_encode(['error' => $message]);
+    exit;
+}
+
+function cleanupDir(string $dir): void
+{
+    if (!is_dir($dir)) {
+        return;
+    }
+    $files = new \RecursiveIteratorIterator(
+        new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS),
+        \RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($files as $f) {
+        $f->isDir() ? rmdir($f->getRealPath()) : unlink($f->getRealPath());
+    }
+    rmdir($dir);
+}
+
+// Mirrors convert.php: always extract course images and page images, only extract
+// other attachments (PDFs, videos, etc.) when "Skip attached files" is off.
+function shouldExtractZipEntry(string $entryName, bool $skipFiles): bool
+{
+    if (strpos($entryName, 'web_resources/') !== 0) {
+        return true; // not a web_resources/ entry — part of the core course structure
+    }
+    $isCourseImage = strpos($entryName, 'web_resources/course_image/') === 0;
+    $entryExt      = strtolower(pathinfo($entryName, PATHINFO_EXTENSION));
+    $isImage       = in_array($entryExt, IMAGE_EXTENSIONS, true);
+    return $isCourseImage || $isImage || !$skipFiles;
+}
 
 /**
  * Samples up to MAX_PREVIEW_PAGES content pages from under 30.modules/ — the
@@ -257,6 +262,6 @@ function stripFrontmatter(string $pageContent): string
 //      "pages/course/30.modules/course-page.md"                      -> "_flat_landing" (single-module courses, no subfolder)
 function moduleGroupFromPath(string $path): string
 {
-    preg_match('#/30\.modules/([^/]+)/#', $path, $match);
-    return $match[1] ?? '_flat_landing';
+    preg_match('#/30\.modules/([^/]+)/#', $path, $moduleMatch);
+    return $moduleMatch[1] ?? '_flat_landing';
 }

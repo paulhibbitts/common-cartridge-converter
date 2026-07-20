@@ -497,13 +497,13 @@ function renderCallouts(html) {
   container.querySelectorAll('blockquote').forEach(blockquote => {
     const firstParagraph = blockquote.querySelector('p');
     if (!firstParagraph) return;
-    const match = firstParagraph.innerHTML.match(/^\[!(TIP|NOTE|WARNING|IMPORTANT)\]\s*/i);
-    if (!match) return;
-    const calloutType = match[1].toLowerCase();
-    firstParagraph.innerHTML = firstParagraph.innerHTML.slice(match[0].length);
+    const calloutMatch = firstParagraph.innerHTML.match(/^\[!(TIP|NOTE|WARNING|IMPORTANT)\]\s*/i);
+    if (!calloutMatch) return;
+    const calloutType = calloutMatch[1].toLowerCase();
+    firstParagraph.innerHTML = firstParagraph.innerHTML.slice(calloutMatch[0].length);
     const callout = document.createElement('div');
     callout.className = `pv-callout ${calloutType}`;
-    callout.innerHTML = `<span class="pv-lbl">${match[1].toUpperCase()}</span>` + blockquote.innerHTML;
+    callout.innerHTML = `<span class="pv-lbl">${calloutMatch[1].toUpperCase()}</span>` + blockquote.innerHTML;
     blockquote.replaceWith(callout);
   });
   return container.innerHTML;
@@ -538,7 +538,12 @@ function replaceLocalImages(html, images) {
 function showPreviewPage(pageIndex) {
   const page = previewPages[pageIndex];
   previewPath.textContent = page.path;
-  previewContent.innerHTML = renderCallouts(replaceLocalImages(marked.parse(renderObjectivesShortcode(page.markdown)), page.images || {}));
+
+  const markdownWithObjectives = renderObjectivesShortcode(page.markdown);
+  const renderedHtml           = marked.parse(markdownWithObjectives);
+  const htmlWithImages         = replaceLocalImages(renderedHtml, page.images || {});
+  previewContent.innerHTML     = renderCallouts(htmlWithImages);
+
   previewTabs.querySelectorAll('.pv-tab').forEach((tabButton, tabIndex) =>
     tabButton.classList.toggle('active', tabIndex === pageIndex)
   );
