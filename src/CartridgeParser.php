@@ -37,6 +37,7 @@ class CartridgeParser
     private array $refToAttachmentPath = [];  // resource-id  → relative file path
     private array $itemToResource      = [];  // manifest item-id → resource-id
     private array $assignmentHtmlPaths = [];  // slug → absolute path to assignment HTML file
+    private array $webPagePaths        = [];  // slug (= resource-id) → absolute path to a non-Canvas HTML content page
     private int   $manifestUnsupportedCount = 0; // items skipped by parseModulesFromManifest()
 
     private static array $licenseMap = [
@@ -166,7 +167,24 @@ class CartridgeParser
 
             if (str_contains($type, 'webcontent')) {
                 if (str_starts_with($href, 'wiki_content/')) {
+                    // Canvas convention: a real content page.
                     $this->refToWikiSlug[$rid] = pathinfo($href, PATHINFO_FILENAME);
+                } elseif (preg_match('/\.html?$/i', $href)) {
+                    // "webcontent" is also the standard IMS type non-Canvas producers
+                    // (Sakai, Moodle, Blackboard, ...) use for real HTML lesson pages —
+                    // they just don't use Canvas's wiki_content/ folder convention. An
+                    // .html/.htm href here is a genuine content page, not a downloadable
+                    // attachment, so treat it like one. The resource id (not the filename
+                    // stem) is used as the slug: non-Canvas exports commonly reuse generic
+                    // filenames like index.html across many folders, and the id is
+                    // guaranteed unique. This slug is only ever used as an internal lookup
+                    // key into $wikiPages / $slugToRoute — never exposed as a URL — so an
+                    // opaque id is safe here.
+                    $fullPath = $this->dir . '/' . $href;
+                    if (file_exists($fullPath)) {
+                        $this->refToWikiSlug[$rid] = $rid;
+                        $this->webPagePaths[$rid]  = $fullPath;
+                    }
                 } else {
                     $this->refToAttachmentPath[$rid] = $href;
                 }
@@ -431,15 +449,20 @@ class CartridgeParser
     private function loadWikiPages(): void
     {
         $wikiDir = $this->dir . '/wiki_content';
-        if (!is_dir($wikiDir)) return;
-
-        foreach (glob($wikiDir . '/*.html') ?: [] as $file) {
-            $slug = pathinfo($file, PATHINFO_FILENAME);
-            $this->wikiPages[$slug] = file_get_contents($file);
+        if (is_dir($wikiDir)) {
+            foreach (glob($wikiDir . '/*.html') ?: [] as $file) {
+                $slug = pathinfo($file, PATHINFO_FILENAME);
+                $this->wikiPages[$slug] = file_get_contents($file);
+            }
         }
 
         // Also load assignment HTML files (same content format as wiki pages)
         foreach ($this->assignmentHtmlPaths as $slug => $path) {
+            $this->wikiPages[$slug] = file_get_contents($path);
+        }
+
+        // Also load non-Canvas "webcontent" pages found outside wiki_content/
+        foreach ($this->webPagePaths as $slug => $path) {
             $this->wikiPages[$slug] = file_get_contents($path);
         }
     }
