@@ -16,12 +16,89 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><style>path{stroke:%232c2a27}@media (prefers-color-scheme:dark){path{stroke:%23e8e6e3}}</style><path d='M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4'/><path d='M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4'/></svg>">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config = { darkMode: 'media' }</script>
+<script src="marked.min.js"></script>
 <style>
   .drop-zone.dragover { border-color: #45a08a; background: #eef8f5; }
   @media (prefers-color-scheme: dark) {
     .drop-zone.dragover { border-color: #4fb89f; background: #163d33; }
   }
   .file-selected.visible { display: flex; }
+
+  /* ── Preview panel — its own visual identity, deliberately distinct from   ── */
+  /* ── the tool's own teal chrome, so it never reads as the real Helios theme ── */
+  .pv-panel { display: none; margin-top: 1rem; border: 1px solid #d6d3d1; border-radius: 12px; overflow: hidden; }
+  .pv-panel.open { display: block; }
+  @media (prefers-color-scheme: dark) { .pv-panel { border-color: #44403c; } }
+  .pv-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; flex-wrap: wrap; padding: 0.75rem 1rem; }
+  .pv-panel-head .pv-label { font-size: 0.85rem; font-weight: 600; }
+  .pv-panel-head .pv-note { font-size: 0.7rem; color: #78716c; }
+  .pv-tabs { display: flex; gap: 0.35rem; flex-wrap: wrap; padding: 0 1rem 0.75rem; }
+  .pv-tab { font-size: 0.74rem; padding: 4px 10px; border-radius: 99px; border: 1px solid #d6d3d1; background: transparent; color: #57534e; cursor: pointer; }
+  .pv-tab.active { background: #f0fdfa; border-color: #99f6e4; color: #0f766e; font-weight: 600; }
+  @media (prefers-color-scheme: dark) {
+    .pv-tab { border-color: #57534e; color: #a8a29e; }
+    .pv-tab.active { background: #134e4a; border-color: #0f766e; color: #5eead4; }
+  }
+
+  .pv-frame {
+    background: #ECEAE2; padding: 1.1rem 1.25rem 1.6rem;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) { .pv-frame { background: #1C1A16; } }
+  .pv-mono { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+  .pv-chrome-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; flex-wrap: wrap;
+    padding: 0.5rem 0.8rem; background: #F5F3EC; border: 1px solid #D9D4C5; border-radius: 8px; margin-bottom: 1rem;
+  }
+  @media (prefers-color-scheme: dark) { .pv-chrome-bar { background: #232019; border-color: #3A362C; } }
+  .pv-breadcrumb { font-size: 0.68rem; color: #8B856E; word-break: break-all; }
+  .pv-badge {
+    font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: #0f766e;
+    background: #ccfbf1; border: 1px solid #5eead4; border-radius: 99px; padding: 2px 8px; flex-shrink: 0;
+  }
+  @media (prefers-color-scheme: dark) { .pv-badge { color: #5eead4; background: #134e4a; border-color: #0f766e; } }
+  .pv-body { color: #221F19; }
+  @media (prefers-color-scheme: dark) { .pv-body { color: #EDE9DD; } }
+  .pv-body p { line-height: 1.65; font-size: 0.92rem; margin: 0 0 0.95rem; max-width: 62ch; }
+  .pv-body h1 { font-size: 1.25rem; margin: 0 0 1rem; font-weight: 600; line-height: 1.28; }
+  .pv-body h2 { font-size: 1.05rem; margin: 1.6rem 0 0.7rem; font-weight: 600; }
+  .pv-body ol, .pv-body ul { padding-left: 1.2rem; font-size: 0.88rem; }
+  .pv-body li { margin-bottom: 0.3rem; }
+
+  /* Callout treatment for Course Hub's ">​ [!TYPE]" alert blockquotes */
+  .pv-callout { border-left: 3px solid; border-radius: 6px; padding: 0.7rem 1rem; margin: 1rem 0 1.3rem; font-size: 0.88rem; }
+  .pv-callout p { margin: 0; max-width: none; }
+  .pv-callout .pv-lbl { font-weight: 600; font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; display: block; margin-bottom: 0.3rem; }
+  .pv-callout.tip       { background: #f0fdfa; border-color: #0f766e; }
+  .pv-callout.tip .pv-lbl       { color: #0f766e; }
+  .pv-callout.note      { background: #eff6ff; border-color: #1e40af; }
+  .pv-callout.note .pv-lbl      { color: #1e40af; }
+  .pv-callout.warning   { background: #fffbeb; border-color: #b45309; }
+  .pv-callout.warning .pv-lbl   { color: #b45309; }
+  .pv-callout.important { background: #fef2f2; border-color: #b91c1c; }
+  .pv-callout.important .pv-lbl { color: #b91c1c; }
+  @media (prefers-color-scheme: dark) {
+    .pv-callout.tip       { background: #134e4a; }
+    .pv-callout.tip .pv-lbl       { color: #5eead4; }
+    .pv-callout.note      { background: #17223f; }
+    .pv-callout.note .pv-lbl      { color: #93c5fd; }
+    .pv-callout.warning   { background: #3f2d0a; }
+    .pv-callout.warning .pv-lbl   { color: #fcd34d; }
+    .pv-callout.important { background: #3b0a0a; }
+    .pv-callout.important .pv-lbl { color: #fca5a5; }
+  }
+
+  .pv-error { padding: 1rem; font-size: 0.85rem; color: #991b1b; }
+  @media (prefers-color-scheme: dark) { .pv-error { color: #fca5a5; } }
+
+  .pv-img-blocked {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    border-radius: 6px; border: 1px dashed #D9D4C5; background: #F5F3EC;
+    padding: 0.4rem 0.7rem; margin: 0.2rem 0;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.72rem; color: #8B856E;
+  }
+  @media (prefers-color-scheme: dark) { .pv-img-blocked { background: #232019; border-color: #3A362C; } }
   .tech-summary-body p  { margin-bottom: 0.75rem; }
   .tech-summary-body ol { padding-left: 1.25rem; margin-bottom: 0.75rem; }
   .tech-summary-body li { margin-bottom: 0.25rem; }
@@ -163,10 +240,18 @@
         </div>
       </div>
 
-      <button type="submit" class="w-full py-[10px] text-[15px] font-medium bg-teal-700 dark:bg-teal-600 text-white border border-teal-800 dark:border-teal-500 rounded-lg cursor-pointer transition-colors duration-150 enabled:hover:bg-teal-800 dark:enabled:hover:bg-teal-700 disabled:opacity-40 disabled:cursor-default inline-flex items-center justify-center gap-2" id="convert-btn" disabled>
-        <svg id="convert-spinner" class="hidden animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" stroke-opacity="0.3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
-        <span id="convert-btn-text">Convert &amp; Download ZIP</span>
-      </button>
+      <div class="flex items-center gap-3 flex-wrap">
+        <button type="submit" class="flex-1 min-w-[200px] py-[10px] text-[15px] font-medium bg-teal-700 dark:bg-teal-600 text-white border border-teal-800 dark:border-teal-500 rounded-lg cursor-pointer transition-colors duration-150 enabled:hover:bg-teal-800 dark:enabled:hover:bg-teal-700 disabled:opacity-40 disabled:cursor-default inline-flex items-center justify-center gap-2" id="convert-btn" disabled>
+          <svg id="convert-spinner" class="hidden animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" stroke-opacity="0.3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+          <span id="convert-btn-text">Convert &amp; Download ZIP</span>
+        </button>
+
+        <button type="button" id="preview-btn" class="inline-flex items-center gap-2 py-[10px] px-[14px] text-[13px] font-medium text-teal-700 dark:text-teal-400 bg-transparent border border-teal-200 dark:border-teal-800 rounded-lg cursor-pointer transition-colors duration-150 enabled:hover:bg-teal-50 dark:enabled:hover:bg-teal-950 disabled:opacity-40 disabled:cursor-default" disabled>
+          <svg id="preview-spinner" class="hidden animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" stroke-opacity="0.3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+          <span class="text-[10px] font-semibold tracking-wide uppercase bg-teal-700 dark:bg-teal-600 text-white rounded px-[5px] py-[1px]">New</span>
+          <span id="preview-btn-text">Preview sample pages</span>
+        </button>
+      </div>
 
       <p id="converting-note" class="text-xs text-stone-500 dark:text-stone-400 text-center mt-2" style="display:none">
         Conversion in progress — large courses may take up to a minute. Please wait&hellip;
@@ -175,6 +260,21 @@
       <input type="hidden" name="download_token" id="download-token">
 
     </form>
+
+    <div class="pv-panel" id="preview-panel">
+      <div class="pv-panel-head">
+        <span class="pv-label">Preview</span>
+        <span class="pv-note">Sample pages, not final Grav Helios styling</span>
+      </div>
+      <div class="pv-tabs" id="preview-tabs"></div>
+      <div class="pv-frame">
+        <div class="pv-chrome-bar">
+          <span class="pv-breadcrumb pv-mono" id="preview-path"></span>
+          <span class="pv-badge">Preview sketch</span>
+        </div>
+        <div class="pv-body" id="preview-content"></div>
+      </div>
+    </div>
 
     <details class="mt-6 border-t border-stone-200 dark:border-stone-700 pt-4">
       <summary class="text-[13px] text-stone-500 dark:text-stone-400 cursor-pointer select-none hover:text-stone-600 dark:hover:text-stone-300">What exactly does this do?</summary>
@@ -222,6 +322,13 @@ const convertSpinner = document.getElementById('convert-spinner');
 const errorBox     = document.getElementById('error-box');
 const errorText    = document.getElementById('error-text');
 const convertingNote = document.getElementById('converting-note');
+const previewBtn      = document.getElementById('preview-btn');
+const previewBtnText  = document.getElementById('preview-btn-text');
+const previewSpinner  = document.getElementById('preview-spinner');
+const previewPanel    = document.getElementById('preview-panel');
+const previewTabs     = document.getElementById('preview-tabs');
+const previewPath     = document.getElementById('preview-path');
+const previewContent  = document.getElementById('preview-content');
 
 function formatBytes(b) {
   if (b < 1024) return b + ' B';
@@ -240,6 +347,7 @@ function showFile(file) {
   fileName.textContent = file.name;
   fileSize.textContent = formatBytes(file.size);
   convertBtn.disabled = false;
+  previewBtn.disabled = false;
   clearBtn.focus();
 }
 
@@ -248,6 +356,8 @@ function clearFile() {
   dropZone.style.display = '';
   fileSelected.classList.remove('visible');
   convertBtn.disabled = true;
+  previewBtn.disabled = true;
+  previewPanel.classList.remove('open');
   dropZone.focus();
 }
 
@@ -349,6 +459,126 @@ window.addEventListener('pageshow', e => {
   if (e.persisted) {
     clearFile();
     resetBtn();
+  }
+});
+
+// ── Preview sample pages — optional, parallel to the main Convert & Download flow ──
+
+let previewPages = null;
+
+function renderPreviewTabs() {
+  previewTabs.innerHTML = previewPages.map((page, pageIndex) =>
+    `<button type="button" class="pv-tab${pageIndex === 0 ? ' active' : ''}" data-page-index="${pageIndex}">${page.title}</button>`
+  ).join('');
+  previewTabs.querySelectorAll('.pv-tab').forEach(tabButton =>
+    tabButton.addEventListener('click', () => showPreviewPage(Number(tabButton.dataset.pageIndex)))
+  );
+}
+
+// Wiki page content can carry a Grav "[objectives]...[/objectives]" shortcode straight through
+// from the source LMS page — marked.js doesn't know it, so without this it prints the literal
+// brackets as text. Blank lines around the injected <div> are required: without them, marked's
+// HTML-block parser swallows whatever markdown immediately follows as raw HTML text instead of
+// parsing it, since it treats the block as continuing until a blank line.
+function renderObjectivesShortcode(markdown) {
+  return markdown.replace(/\[objectives\]([\s\S]*?)\[\/objectives\]/g, (fullMatch, innerMarkdown) =>
+    `\n\n<div class="pv-callout tip"><span class="pv-lbl">Learning Objectives</span>${marked.parse(innerMarkdown.trim())}</div>\n\n`
+  );
+}
+
+// Course Hub content uses Obsidian/GFM-style alert blockquotes ("> [!TIP] ...", "> [!NOTE] ...",
+// "> [!WARNING] ...", "> [!IMPORTANT] ..."), not a bracket-tag shortcode. marked.js parses these
+// as plain blockquotes with the literal "[!TIP]" text inside — it doesn't know to style them.
+// Post-process the already-rendered HTML: find blockquotes that start with one of these markers
+// and swap them for a styled callout, matching the treatment Course Hub itself gives them.
+function renderCallouts(html) {
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  container.querySelectorAll('blockquote').forEach(blockquote => {
+    const firstParagraph = blockquote.querySelector('p');
+    if (!firstParagraph) return;
+    const match = firstParagraph.innerHTML.match(/^\[!(TIP|NOTE|WARNING|IMPORTANT)\]\s*/i);
+    if (!match) return;
+    const calloutType = match[1].toLowerCase();
+    firstParagraph.innerHTML = firstParagraph.innerHTML.slice(match[0].length);
+    const callout = document.createElement('div');
+    callout.className = `pv-callout ${calloutType}`;
+    callout.innerHTML = `<span class="pv-lbl">${match[1].toUpperCase()}</span>` + blockquote.innerHTML;
+    blockquote.replaceWith(callout);
+  });
+  return container.innerHTML;
+}
+
+// CC embeds images by local filename (e.g. "Watch-Icon.png"), not a full URL — the browser
+// can't resolve that on its own. When the server already had the matching binary on hand
+// (see embeddedImagesForPage() in preview.php) it comes back as a base64 data URI in
+// page.images, and we use it directly. Only genuinely unavailable images — download failed,
+// or too large to embed — fall back to a placeholder instead of a broken-image icon.
+function replaceLocalImages(html, images) {
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  container.querySelectorAll('img').forEach(img => {
+    const src = img.getAttribute('src') || '';
+    if (/^https?:\/\//i.test(src)) return; // already a real URL, leave it to load normally
+
+    const dataUri = images[src];
+    if (dataUri) {
+      img.src = dataUri;
+      return;
+    }
+
+    const placeholder = document.createElement('span');
+    placeholder.className = 'pv-img-blocked';
+    placeholder.innerHTML = '<span aria-hidden="true">🖼</span> Image not available in preview — included in the downloaded ZIP';
+    img.replaceWith(placeholder);
+  });
+  return container.innerHTML;
+}
+
+function showPreviewPage(pageIndex) {
+  const page = previewPages[pageIndex];
+  previewPath.textContent = page.path;
+  previewContent.innerHTML = renderCallouts(replaceLocalImages(marked.parse(renderObjectivesShortcode(page.markdown)), page.images || {}));
+  previewTabs.querySelectorAll('.pv-tab').forEach((tabButton, tabIndex) =>
+    tabButton.classList.toggle('active', tabIndex === pageIndex)
+  );
+}
+
+function showPreviewError(message) {
+  previewTabs.innerHTML = '';
+  previewPath.textContent = '';
+  previewContent.innerHTML = `<p class="pv-error">${message}</p>`;
+  previewPanel.classList.add('open');
+}
+
+previewBtn.addEventListener('click', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  previewBtn.disabled = true;
+  previewBtnText.textContent = 'Loading preview…';
+  previewSpinner.classList.remove('hidden');
+
+  try {
+    const formData = new FormData(document.getElementById('convert-form'));
+    const res  = await fetch('preview.php', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      showPreviewError(data.error || 'Preview failed. Please try again.');
+      return;
+    }
+
+    previewPages = data.pages;
+    renderPreviewTabs();
+    showPreviewPage(0);
+    previewPanel.classList.add('open');
+  } catch (e) {
+    showPreviewError('Preview failed — could not reach the server.');
+  } finally {
+    previewBtn.disabled = fileInput.files.length === 0;
+    previewBtnText.textContent = 'Preview sample pages';
+    previewSpinner.classList.add('hidden');
   }
 });
 </script>

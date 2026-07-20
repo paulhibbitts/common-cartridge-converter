@@ -58,6 +58,22 @@ class CourseHubBuilder
         return $this->stripTitleNumbering ? Helpers::stripLeadingNumbering($title) : $title;
     }
 
+    // Exposes the in-memory Markdown files build() already assembled — used by the
+    // preview endpoint, which needs page content without writing an actual zip.
+    public function getFiles(): array
+    {
+        return $this->files;
+    }
+
+    // zipPath => binary image data, already downloaded by build() regardless of the
+    // "skip image download" setting for locally-bundled cartridge images (only remote-URL
+    // images are affected by that flag). Lets the preview embed real images instead of
+    // always showing a placeholder.
+    public function getImageData(): array
+    {
+        return $this->imageData;
+    }
+
     public function build(): string
     {
         $this->warnings = array_merge($this->warnings, $this->parser->warnings);
