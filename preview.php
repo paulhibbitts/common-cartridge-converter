@@ -136,11 +136,12 @@ function shouldExtractZipEntry(string $entryName, bool $skipFiles): bool
 }
 
 /**
- * Samples up to MAX_PREVIEW_PAGES content pages from under 30.modules/ — the
- * only folder that holds real, wiki-page-derived course content. Home,
- * Essentials, Resources, and Syllabus are excluded automatically, since none
- * of them live under 30.modules/ (see CourseHubBuilder's buildHomePage(),
- * buildEssentials(), buildResources(), buildSyllabus()).
+ * Samples up to MAX_PREVIEW_PAGES content pages. The Home page goes first when it has
+ * real content (see homePageCandidate()), followed by one page per module from under
+ * 30.modules/ — the only other folder that holds real, wiki-page-derived course content.
+ * Essentials, Resources, and Syllabus are always excluded, since they're synthetic stub
+ * pages, never real converted content (see CourseHubBuilder's buildEssentials(),
+ * buildResources(), buildSyllabus()).
  *
  * Multi-module courses nest each module in its own subfolder
  * (30.modules/01.module-a/course-page.md, plus child pages one level deeper);
@@ -151,13 +152,20 @@ function shouldExtractZipEntry(string $entryName, bool $skipFiles): bool
  */
 function pickPreviewPages(array $files, array $imageData): array
 {
+    $selected = [];
+
+    $home = homePageCandidate($files);
+    if ($home) {
+        $selected[] = $home;
+    }
+
     $candidatesByModule = [];
     foreach ($files as $path => $content) {
         if (!str_contains($path, '/30.modules/') || !str_ends_with($path, 'course-page.md')) {
             continue;
         }
 
-        $body = stripFrontmatter($content);
+        $body = cleanPageBody($content);
         if (strlen($body) < MIN_PREVIEW_PAGE_LENGTH) {
             continue; // skip thin/stub pages
         }
@@ -166,12 +174,30 @@ function pickPreviewPages(array $files, array $imageData): array
         $candidatesByModule[$module][] = ['path' => $path, 'content' => $content, 'body' => $body];
     }
 
-    $selected = array_map(
-        fn($candidates) => pickBestCandidate($candidates, $imageData),
-        $candidatesByModule
-    );
+    foreach ($candidatesByModule as $candidates) {
+        $selected[] = pickBestCandidate($candidates, $imageData);
+    }
 
-    return array_slice(array_values($selected), 0, MAX_PREVIEW_PAGES);
+    return array_slice($selected, 0, MAX_PREVIEW_PAGES);
+}
+
+// The course Home page only has real content when the first module's title was detected as
+// an intro (see CourseHubBuilder::buildModules()'s $introKeywords check) — in that case it's
+// the site's actual landing page and worth showing first. Otherwise it's just the bare
+// conversion notice with nothing else, and not worth including at all.
+function homePageCandidate(array $files): ?array
+{
+    foreach ($files as $path => $content) {
+        if (!str_contains($path, '/10.home/') || !str_ends_with($path, 'course-page.md')) {
+            continue;
+        }
+        $body = cleanPageBody($content);
+        if (strlen($body) < MIN_PREVIEW_PAGE_LENGTH) {
+            return null; // no intro module detected — nothing but the conversion notice
+        }
+        return ['path' => $path, 'content' => $content, 'body' => $body];
+    }
+    return null;
 }
 
 // Prefers the first candidate in a module that has at least one embeddable image, so someone
@@ -190,7 +216,7 @@ function pickBestCandidate(array $candidates, array $imageData): array
 function formatPreviewPage(array $page, array $imageData): array
 {
     preg_match("/title:\s*'(.+?)'/", $page['content'], $titleMatch);
-    $markdown = stripFrontmatter($page['content']);
+    $markdown = cleanPageBody($page['content']);
     return [
         'path'     => $page['path'],
         'title'    => $titleMatch[1] ?? 'Untitled',
@@ -249,6 +275,24 @@ function imageMimeType(string $filename): string
         'bmp'         => 'image/bmp',
         default       => 'application/octet-stream',
     };
+}
+
+// Removes the leading "--- ... ---" YAML block every page starts with, plus the
+// auto-generated "this course was automatically converted..." notice CourseHubBuilder
+// prepends to the Home page — real, useful context in the actual download, but redundant
+// in a preview that's already labeled "Preview sketch" and explains its own limitations
+// elsewhere. Used everywhere a page's real content length or display text is needed, so
+// the notice's ~280 characters never inflates a substantiality check or shows up on screen.
+function cleanPageBody(string $pageContent): string
+{
+    $body = stripFrontmatter($pageContent);
+    return preg_replace_callback(
+        '/^> \[!IMPORTANT\]\n(?:>[^\n]*\n)*\n*/m',
+        // Match on the notice's specific wording, not just its [!IMPORTANT] type, so real
+        // course content that happens to use the same callout is never hidden by mistake.
+        fn($m) => str_contains($m[0], 'automatically converted from a Common Cartridge') ? '' : $m[0],
+        $body
+    );
 }
 
 // Removes the leading "--- ... ---" YAML block every page starts with.
