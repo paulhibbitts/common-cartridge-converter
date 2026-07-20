@@ -169,23 +169,31 @@ class CartridgeParser
                 if (str_starts_with($href, 'wiki_content/')) {
                     // Canvas convention: a real content page.
                     $this->refToWikiSlug[$rid] = pathinfo($href, PATHINFO_FILENAME);
-                } elseif (preg_match('/\.html?$/i', $href)) {
+                } else {
                     // "webcontent" is also the standard IMS type non-Canvas producers
                     // (Sakai, Moodle, Blackboard, ...) use for real HTML lesson pages —
-                    // they just don't use Canvas's wiki_content/ folder convention. An
-                    // .html/.htm href here is a genuine content page, not a downloadable
-                    // attachment, so treat it like one. The resource id (not the filename
-                    // stem) is used as the slug: non-Canvas exports commonly reuse generic
-                    // filenames like index.html across many folders, and the id is
-                    // guaranteed unique. This slug is only ever used as an internal lookup
-                    // key into $wikiPages / $slugToRoute — never exposed as a URL — so an
-                    // opaque id is safe here.
-                    $fullPath = $this->dir . '/' . $href;
-                    if (file_exists($fullPath)) {
-                        $this->refToWikiSlug[$rid] = $rid;
-                        $this->webPagePaths[$rid]  = $fullPath;
+                    // they just don't use Canvas's wiki_content/ folder convention, so an
+                    // .html/.htm href outside it may be a genuine content page rather than
+                    // a downloadable attachment. But some Canvas exports also use plain
+                    // .html attachments deliberately (e.g. a small video-embed snippet
+                    // explicitly typed "Attachment" in module_meta.xml) — so both maps are
+                    // populated and left for the two type-resolution paths to pick between:
+                    // resolveManifestResource() (no module_meta.xml — the non-Canvas
+                    // fallback) checks refToWikiSlug first and treats it as a real page,
+                    // while parseModulesFromModuleMeta() honors Canvas's own explicit
+                    // "Attachment" classification via refToAttachmentPath when present.
+                    // The resource id (not the filename stem) is used as the wiki slug:
+                    // non-Canvas exports commonly reuse generic filenames like index.html
+                    // across many folders, and the id is guaranteed unique — this slug is
+                    // only ever an internal lookup key into $wikiPages / $slugToRoute,
+                    // never exposed as a URL, so an opaque id is safe here.
+                    if (preg_match('/\.html?$/i', $href)) {
+                        $fullPath = $this->dir . '/' . $href;
+                        if (file_exists($fullPath)) {
+                            $this->refToWikiSlug[$rid] = $rid;
+                            $this->webPagePaths[$rid]  = $fullPath;
+                        }
                     }
-                } else {
                     $this->refToAttachmentPath[$rid] = $href;
                 }
             } elseif ($type === 'assignment_xmlv1p0') {
