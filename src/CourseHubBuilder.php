@@ -587,16 +587,22 @@ class CourseHubBuilder
 
     private function downloadImage(string $url): ?string
     {
+        if (!$this->isSafeImageUrl($url)) {
+            return null;
+        }
+
         if (function_exists('curl_init')) {
             $ch = curl_init($url);
             curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_CONNECTTIMEOUT => 3,   // 3s to establish connection
-                CURLOPT_TIMEOUT        => 5,   // 5s total transfer
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS      => 3,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; CourseHubConverter/1.0)',
+                CURLOPT_RETURNTRANSFER  => true,
+                CURLOPT_CONNECTTIMEOUT  => 3,   // 3s to establish connection
+                CURLOPT_TIMEOUT         => 5,   // 5s total transfer
+                CURLOPT_FOLLOWLOCATION  => true,
+                CURLOPT_MAXREDIRS       => 3,
+                CURLOPT_PROTOCOLS       => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                CURLOPT_SSL_VERIFYPEER  => true,
+                CURLOPT_USERAGENT       => 'Mozilla/5.0 (compatible; CourseHubConverter/1.0)',
             ]);
             $data     = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -608,6 +614,26 @@ class CourseHubBuilder
         $ctx  = stream_context_create(['http' => ['timeout' => 5, 'ignore_errors' => true]]);
         $data = @file_get_contents($url, false, $ctx);
         return ($data !== false && strlen($data) > 0) ? $data : null;
+    }
+
+    // SSRF guard: an <img> src comes straight from uploaded course content, so before
+    // fetching it, reject anything that isn't plain http(s) (blocks file://, etc. — this
+    // matters most for the file_get_contents() fallback above, which would otherwise just
+    // read a local file directly) or whose host resolves to a private, loopback, or
+    // link-local address (e.g. a cloud metadata endpoint). Same pattern as
+    // ZipBuilder::downloadFile() in the Pressbooks converter.
+    private function isSafeImageUrl(string $url): bool
+    {
+        $scheme = strtolower(parse_url($url, PHP_URL_SCHEME) ?? '');
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return false;
+        }
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!$host) {
+            return false;
+        }
+        $ip = gethostbyname($host);
+        return (bool) filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
     }
 
     private function getWikiHtml(array $item): string

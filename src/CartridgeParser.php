@@ -176,8 +176,8 @@ class CartridgeParser
                     // the one it actually needs (see resolveManifestResource() and
                     // parseModulesFromModuleMeta()).
                     if ($this->isHtmlHref($href)) {
-                        $fullPath = $this->dir . '/' . $href;
-                        if (file_exists($fullPath)) {
+                        $fullPath = $this->safePath($href);
+                        if ($fullPath !== null) {
                             // Resource id, not filename, avoids collisions on repeated
                             // names like index.html; it's an internal lookup key only,
                             // never a URL.
@@ -189,8 +189,8 @@ class CartridgeParser
                 }
             } elseif ($type === 'assignment_xmlv1p0') {
                 // Find the HTML file in the assignment subdirectory
-                $subDir    = dirname($this->dir . '/' . $href);
-                $htmlFiles = glob($subDir . '/*.html') ?: [];
+                $subDir    = $this->safePath(dirname($href));
+                $htmlFiles = $subDir !== null ? (glob($subDir . '/*.html') ?: []) : [];
                 if (!empty($htmlFiles)) {
                     $slug = pathinfo($htmlFiles[0], PATHINFO_FILENAME);
                     $this->refToWikiSlug[$rid]       = $slug;
@@ -198,8 +198,8 @@ class CartridgeParser
                 }
             } elseif (str_contains($type, 'imswl')) {
                 // ExternalUrl: read the webLink XML file for the actual URL
-                $xmlFile = $this->dir . '/' . $href;
-                if (file_exists($xmlFile)) {
+                $xmlFile = $this->safePath($href);
+                if ($xmlFile !== null) {
                     $url = $this->readWebLinkUrl($xmlFile);
                     if ($url) {
                         $this->refToExternalUrl[$rid] = $url;
@@ -224,8 +224,8 @@ class CartridgeParser
             $resourceId = $this->itemToResource[$this->pendingImageRef] ?? $this->pendingImageRef;
             $relPath = $this->refToAttachmentPath[$resourceId] ?? '';
             if ($relPath) {
-                $fullPath = $this->dir . '/' . $relPath;
-                if (file_exists($fullPath)) {
+                $fullPath = $this->safePath($relPath);
+                if ($fullPath !== null) {
                     $this->courseImagePath = $fullPath;
                 }
             }
@@ -237,6 +237,24 @@ class CartridgeParser
     private function isHtmlHref(string $href): bool
     {
         return (bool) preg_match('/\.html?$/i', $href);
+    }
+
+    // Resolves a manifest-supplied relative path against the extracted cartridge
+    // directory and rejects anything that escapes it (e.g. a "../../etc/passwd" href in a
+    // crafted imsmanifest.xml) — manifests come from an untrusted upload, so every path
+    // built from one needs this instead of a plain string concatenation. Returns null for
+    // a missing, unreadable, or out-of-bounds path.
+    private function safePath(string $relative): ?string
+    {
+        $base = realpath($this->dir);
+        $full = realpath($this->dir . '/' . $relative);
+        if ($base === false || $full === false) {
+            return null;
+        }
+        if ($full !== $base && !str_starts_with($full, $base . DIRECTORY_SEPARATOR)) {
+            return null;
+        }
+        return $full;
     }
 
     private function readWebLinkUrl(string $xmlFile): string
@@ -312,10 +330,7 @@ class CartridgeParser
                 } elseif ($type === 'Attachment') {
                     $relPath = $this->refToAttachmentPath[$iRef] ?? null;
                     if ($relPath) {
-                        $fullPath = $this->dir . '/' . $relPath;
-                        if (file_exists($fullPath)) {
-                            $filePath = $fullPath;
-                        }
+                        $filePath = $this->safePath($relPath);
                     }
                 }
 
@@ -444,8 +459,7 @@ class CartridgeParser
             return ['ExternalUrl', null, $this->refToExternalUrl[$rid], null];
         }
         if (isset($this->refToAttachmentPath[$rid])) {
-            $fullPath = $this->dir . '/' . $this->refToAttachmentPath[$rid];
-            return ['Attachment', null, null, file_exists($fullPath) ? $fullPath : null];
+            return ['Attachment', null, null, $this->safePath($this->refToAttachmentPath[$rid])];
         }
         return [null, null, null, null];
     }
