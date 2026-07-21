@@ -170,26 +170,17 @@ class CartridgeParser
                     // Canvas convention: a real content page.
                     $this->refToWikiSlug[$rid] = pathinfo($href, PATHINFO_FILENAME);
                 } else {
-                    // "webcontent" is also the standard IMS type non-Canvas producers
-                    // (Sakai, Moodle, Blackboard, ...) use for real HTML lesson pages —
-                    // they just don't use Canvas's wiki_content/ folder convention, so an
-                    // .html/.htm href outside it may be a genuine content page rather than
-                    // a downloadable attachment. But some Canvas exports also use plain
-                    // .html attachments deliberately (e.g. a small video-embed snippet
-                    // explicitly typed "Attachment" in module_meta.xml) — so both maps are
-                    // populated and left for the two type-resolution paths to pick between:
-                    // resolveManifestResource() (no module_meta.xml — the non-Canvas
-                    // fallback) checks refToWikiSlug first and treats it as a real page,
-                    // while parseModulesFromModuleMeta() honors Canvas's own explicit
-                    // "Attachment" classification via refToAttachmentPath when present.
-                    // The resource id (not the filename stem) is used as the wiki slug:
-                    // non-Canvas exports commonly reuse generic filenames like index.html
-                    // across many folders, and the id is guaranteed unique — this slug is
-                    // only ever an internal lookup key into $wikiPages / $slugToRoute,
-                    // never exposed as a URL, so an opaque id is safe here.
-                    if (preg_match('/\.html?$/i', $href)) {
+                    // Non-Canvas tools (Sakai, Moodle, ...) use "webcontent" for real pages
+                    // too, just without the wiki_content/ folder — so record it as a possible
+                    // page as well as an attachment, and let each type-resolution path pick
+                    // the one it actually needs (see resolveManifestResource() and
+                    // parseModulesFromModuleMeta()).
+                    if ($this->isHtmlHref($href)) {
                         $fullPath = $this->dir . '/' . $href;
                         if (file_exists($fullPath)) {
+                            // Resource id, not filename, avoids collisions on repeated
+                            // names like index.html; it's an internal lookup key only,
+                            // never a URL.
                             $this->refToWikiSlug[$rid] = $rid;
                             $this->webPagePaths[$rid]  = $fullPath;
                         }
@@ -241,6 +232,11 @@ class CartridgeParser
         } elseif ($this->pendingImageUrl) {
             $this->courseImageUrl = $this->pendingImageUrl;
         }
+    }
+
+    private function isHtmlHref(string $href): bool
+    {
+        return (bool) preg_match('/\.html?$/i', $href);
     }
 
     private function readWebLinkUrl(string $xmlFile): string

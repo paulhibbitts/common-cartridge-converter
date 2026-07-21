@@ -530,12 +530,9 @@ function renderCallouts(html) {
   return container.innerHTML;
 }
 
-// CourseHubBuilder emits YouTube videos as a "[youtube]url[/youtube]" shortcode — real Grav
-// syntax the youtube plugin replaces with an embedded player server-side, but marked.js
-// doesn't know it and would print the brackets and URL as literal text. Swap it for an actual
-// embedded iframe before parsing. Blank lines around the injected <div> are required — without
-// them, marked's HTML-block parser swallows whatever markdown immediately follows as raw HTML
-// text instead of parsing it, since it treats the block as continuing until a blank line.
+// Same idea as renderObjectivesShortcode() above: swap the "[youtube]url[/youtube]" shortcode
+// for an actual embedded iframe (marked.js doesn't know the shortcode), keeping the same
+// blank-line spacing marked's HTML-block parser needs.
 function renderVideoEmbeds(markdown) {
   return markdown.replace(/\[youtube\]([\s\S]*?)\[\/youtube\]/g, (fullMatch, url) => {
     const videoId = extractYouTubeId(url.trim());
@@ -587,10 +584,8 @@ function showPreviewPage(pageIndex) {
   renderCurrentView();
 }
 
-// Renders the current page (currentPageIndex) in the current view mode (previewViewMode).
-// Split out from showPreviewPage() so the Preview/Markdown toggle can re-render without
-// needing to know which page is selected, and switching pages keeps whichever view mode
-// the user was already in instead of always resetting to rendered.
+// Renders previewPages[currentPageIndex] in previewViewMode — split out from showPreviewPage()
+// so the Preview/Markdown toggle can re-render without switching pages.
 function renderCurrentView() {
   const page = previewPages[currentPageIndex];
 

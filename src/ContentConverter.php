@@ -626,15 +626,7 @@ class ContentConverter
 
     private function cleanMarkdown(string $md): string
     {
-        // Normalize line endings first — a stray \r\n or bare \r from the source HTML
-        // breaks up a run of \n's (e.g. "\n\n\r\n\n"), so the "3+ blank lines" collapse
-        // below never matches it and an extra blank line leaks through to the output.
-        $md = str_replace(["\r\n", "\r"], "\n", $md);
-        // Blank out whitespace-only lines for the same reason — a "<p>&nbsp;</p>" or
-        // "<p>  </p>" empty spacer paragraph (a common LMS authoring pattern for visual
-        // gap-making) converts to a line containing only spaces, which isn't truly blank
-        // to the collapse regex below and lets excess vertical space through untouched.
-        $md = preg_replace('/^[ \t]+$/m', '', $md);
+        $md = $this->normalizeBlankLines($md);
         // Insert a space before bold/italic markers that are directly adjacent to preceding text
         // (e.g. "building**at least" → "building **at least")
         $md = preg_replace('/(?<=\w)(\*{1,2})(?=\w)/', ' $1', $md);
@@ -651,21 +643,28 @@ class ContentConverter
         $md = preg_replace('/(?:- \[[^\]]*\]\(#tab-?\d+\)\n)+/', '', $md);
         // Strip blank headings left by Canvas tab-pane structure
         $md = preg_replace('/^#{1,6}\s*$/mu', '', $md);
-        // Separate an image from immediately-following text onto its own line — a leading
-        // <img> glued straight to paragraph text (no whitespace at all in the source HTML,
-        // typically a CSS float-positioned hero image with text flowing around it visually,
-        // a layout Markdown can't replicate) reads as "![alt](src)Text" with zero separator.
-        // A same-line space would just squeeze the image and text onto one line; a newline
-        // instead puts the image on its own line with the text starting right below it.
-        // Images already followed by real whitespace in the source (e.g. an inline icon
-        // followed by a short label, "<img> <strong>READ</strong>") never match this — the
-        // lookahead requires non-whitespace — so that pattern is untouched.
-        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))(?=[^\s\n])/', "$1\n", $md);
-        // Collapse 3+ blank lines to 2 — deliberately last: several steps above (blank-heading
-        // strip, tab-nav-list strip) remove content and can leave a fresh 3+ newline gap behind
-        // exactly where it used to be, so this has to run after everything else that deletes
-        // lines, not just once at the start, or those late-created gaps go uncollapsed.
+        $md = $this->breakImageFromFollowingText($md);
+        // Runs last: cleanup steps above can delete lines and leave a fresh gap behind, so
+        // this has to catch those too, not just whatever gaps existed at the very start.
         $md = preg_replace('/\n{3,}/', "\n\n", $md);
         return trim($md);
+    }
+
+    // Normalizes stray \r\n / bare \r line endings and blanks out whitespace-only "spacer"
+    // lines (e.g. from an empty "<p>&nbsp;</p>") so cleanMarkdown()'s blank-line collapse
+    // can actually recognize and collapse them.
+    private function normalizeBlankLines(string $md): string
+    {
+        $md = str_replace(["\r\n", "\r"], "\n", $md);
+        return preg_replace('/^[ \t]+$/m', '', $md);
+    }
+
+    // Puts an image on its own line when the source glued it directly to following text
+    // with no separator at all (e.g. a floated hero image sharing a <p> with its caption).
+    // An image already followed by real whitespace, like an inline icon before a short
+    // label, is left alone.
+    private function breakImageFromFollowingText(string $md): string
+    {
+        return preg_replace('/(\!\[[^\]]*\]\([^)]+\))(?=[^\s\n])/', "$1\n", $md);
     }
 }
