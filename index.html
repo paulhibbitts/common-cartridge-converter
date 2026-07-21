@@ -649,7 +649,7 @@ previewBtn.addEventListener('click', async () => {
     previewPanel.classList.add('open');
   } catch (e) {
     showPreviewError(e.name === 'AbortError'
-      ? 'Preview timed out — this file may be too large to preview quickly. Try "Convert & Download ZIP" instead.'
+      ? 'Preview timed out — this file may be too large to preview on this web host. Try "Convert & Download ZIP" instead, or self-host this open-source tool for large files.'
       : 'Preview failed — could not reach the server.');
   } finally {
     clearTimeout(timeout);
