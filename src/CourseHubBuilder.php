@@ -181,7 +181,10 @@ class CourseHubBuilder
                     $this->pageCount++;
                 } elseif ($item['type'] === 'ExternalUrl') {
                     $url = $item['url'] ?? '';
-                    if ($url) $links[] = $this->externalUrlBody($url, $this->cleanTitle($item['title']));
+                    // rtrim: externalUrlBody() returns its own trailing "\n" (used as a
+                    // standalone page body elsewhere); joining that as-is via the "\n\n"
+                    // implode below would double up into a 3-newline gap between links.
+                    if ($url) $links[] = rtrim($this->externalUrlBody($url, $this->cleanTitle($item['title'])));
                     $this->externalUrlCount++;
                 } elseif ($item['type'] === 'Attachment') {
                     $filePath = $item['filePath'] ?? '';
@@ -200,7 +203,10 @@ class CourseHubBuilder
         }
 
         if ($links) {
-            $body .= "\n" . implode("\n\n", $links) . "\n";
+            // No leading "\n" here — $body already ends in "\n\n" whenever it has WikiPage
+            // content (see the loop above), so one more would leave a 3-newline gap before
+            // the links/attachments list; when $body is empty, trim() below removes it anyway.
+            $body .= implode("\n\n", $links) . "\n";
         }
 
         $title = $mod ? Helpers::yamlEscape($this->cleanTitle($mod['title'])) : 'Home';
