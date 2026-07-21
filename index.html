@@ -347,6 +347,15 @@ function formatBytes(b) {
   return (b / 1048576).toFixed(1) + ' MB';
 }
 
+// Allows ~2s/MB for upload plus 60s processing, clamped to [2min, 10min] — used as a
+// safety fallback for the full convert flow below, and as a fetch abort timeout for the
+// preview request, so a very large upload fails with a clear message instead of an
+// indefinite spinner.
+function scaledTimeoutMs(fileSizeBytes) {
+  const fileSizeMB = fileSizeBytes / (1024 * 1024);
+  return Math.min(600000, Math.max(120000, Math.ceil(fileSizeMB) * 2000 + 60000));
+}
+
 function showFile(file) {
   errorBox.style.display = 'none';
   if (file.size > 500 * 1024 * 1024) {
@@ -432,10 +441,9 @@ document.getElementById('convert-form').addEventListener('submit', () => {
   convertBtnText.textContent = 'Converting…';
   convertSpinner.classList.remove('hidden');
 
-  // Scale timeout to file size: allow ~2s/MB for upload + 60s processing, min 120s, max 10min
-  const fileSizeMB = (fileInput.files[0]?.size ?? 0) / (1024 * 1024);
-  const timeoutMs  = Math.min(600000, Math.max(120000, Math.ceil(fileSizeMB) * 2000 + 60000));
-  const sizeNote   = fileSizeMB > 50
+  const fileSizeBytes = fileInput.files[0]?.size ?? 0;
+  const timeoutMs     = scaledTimeoutMs(fileSizeBytes);
+  const sizeNote      = fileSizeBytes / (1024 * 1024) > 50
     ? 'Large file — upload and conversion may take several minutes. Please wait…'
     : 'Conversion in progress — large courses may take up to a minute. Please wait…';
   convertingNote.textContent = sizeNote;
@@ -622,9 +630,12 @@ previewBtn.addEventListener('click', async () => {
   previewBtnText.textContent = 'Loading preview…';
   previewSpinner.classList.remove('hidden');
 
+  const controller = new AbortController();
+  const timeout    = setTimeout(() => controller.abort(), scaledTimeoutMs(file.size));
+
   try {
     const formData = new FormData(document.getElementById('convert-form'));
-    const res  = await fetch('preview.php', { method: 'POST', body: formData });
+    const res  = await fetch('preview.php', { method: 'POST', body: formData, signal: controller.signal });
     const data = await res.json();
 
     if (!res.ok || data.error) {
@@ -637,8 +648,11 @@ previewBtn.addEventListener('click', async () => {
     showPreviewPage(0);
     previewPanel.classList.add('open');
   } catch (e) {
-    showPreviewError('Preview failed — could not reach the server.');
+    showPreviewError(e.name === 'AbortError'
+      ? 'Preview timed out — this file may be too large to preview quickly. Try "Convert & Download ZIP" instead.'
+      : 'Preview failed — could not reach the server.');
   } finally {
+    clearTimeout(timeout);
     previewBtn.disabled = fileInput.files.length === 0;
     previewBtnText.textContent = 'Preview sample pages';
     previewSpinner.classList.add('hidden');
