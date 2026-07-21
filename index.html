@@ -52,11 +52,15 @@
   }
   @media (prefers-color-scheme: dark) { .pv-chrome-bar { background: #232019; border-color: #3A362C; } }
   .pv-breadcrumb { font-size: 0.68rem; color: #8B856E; word-break: break-all; }
-  .pv-badge {
-    font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: #0f766e;
-    background: #ccfbf1; border: 1px solid #5eead4; border-radius: 99px; padding: 2px 8px; flex-shrink: 0;
+  .pv-view-toggle { display: flex; gap: 0.35rem; }
+
+  .pv-raw {
+    margin: 0; padding: 0.9rem 1rem; white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.78rem; line-height: 1.55; color: #221F19;
+    background: #F5F3EC; border: 1px solid #D9D4C5; border-radius: 8px;
   }
-  @media (prefers-color-scheme: dark) { .pv-badge { color: #5eead4; background: #134e4a; border-color: #0f766e; } }
+  @media (prefers-color-scheme: dark) { .pv-raw { color: #EDE9DD; background: #232019; border-color: #3A362C; } }
   .pv-body { color: #221F19; }
   @media (prefers-color-scheme: dark) { .pv-body { color: #EDE9DD; } }
   .pv-body p { line-height: 1.65; font-size: 0.92rem; margin: 0 0 0.95rem; max-width: 62ch; }
@@ -273,7 +277,10 @@
       <div class="pv-frame">
         <div class="pv-chrome-bar">
           <span class="pv-breadcrumb pv-mono" id="preview-path"></span>
-          <span class="pv-badge">Preview sketch</span>
+          <div class="pv-view-toggle" id="preview-view-toggle">
+            <button type="button" class="pv-tab active" data-view-mode="rendered">Preview</button>
+            <button type="button" class="pv-tab" data-view-mode="markdown">Markdown</button>
+          </div>
         </div>
         <div class="pv-body" id="preview-content"></div>
       </div>
@@ -332,6 +339,7 @@ const previewPanel    = document.getElementById('preview-panel');
 const previewTabs     = document.getElementById('preview-tabs');
 const previewPath     = document.getElementById('preview-path');
 const previewContent  = document.getElementById('preview-content');
+const previewViewToggle = document.getElementById('preview-view-toggle');
 
 function formatBytes(b) {
   if (b < 1024) return b + ' B';
@@ -468,6 +476,16 @@ window.addEventListener('pageshow', e => {
 // ── Preview sample pages — optional, parallel to the main Convert & Download flow ──
 
 let previewPages = null;
+let previewViewMode = 'rendered'; // 'rendered' | 'markdown' — persists across page-tab switches
+let currentPageIndex = 0;
+
+previewViewToggle.querySelectorAll('.pv-tab').forEach(toggleButton =>
+  toggleButton.addEventListener('click', () => {
+    previewViewMode = toggleButton.dataset.viewMode;
+    previewViewToggle.querySelectorAll('.pv-tab').forEach(b => b.classList.toggle('active', b === toggleButton));
+    renderCurrentView();
+  })
+);
 
 function renderPreviewTabs() {
   previewTabs.innerHTML = previewPages.map((page, pageIndex) =>
@@ -558,23 +576,45 @@ function replaceLocalImages(html, images) {
 }
 
 function showPreviewPage(pageIndex) {
+  currentPageIndex = pageIndex;
   const page = previewPages[pageIndex];
   previewPath.textContent = page.path;
+
+  previewTabs.querySelectorAll('.pv-tab').forEach((tabButton, tabIndex) =>
+    tabButton.classList.toggle('active', tabIndex === pageIndex)
+  );
+
+  renderCurrentView();
+}
+
+// Renders the current page (currentPageIndex) in the current view mode (previewViewMode).
+// Split out from showPreviewPage() so the Preview/Markdown toggle can re-render without
+// needing to know which page is selected, and switching pages keeps whichever view mode
+// the user was already in instead of always resetting to rendered.
+function renderCurrentView() {
+  const page = previewPages[currentPageIndex];
+
+  if (previewViewMode === 'markdown') {
+    const pre = document.createElement('pre');
+    pre.className = 'pv-raw';
+    pre.textContent = page.markdown; // textContent, not innerHTML — escapes course content safely
+    previewContent.innerHTML = '';
+    previewContent.appendChild(pre);
+    return;
+  }
 
   const markdownWithVideos     = renderVideoEmbeds(page.markdown);
   const markdownWithObjectives = renderObjectivesShortcode(markdownWithVideos);
   const renderedHtml           = marked.parse(markdownWithObjectives);
   const htmlWithImages         = replaceLocalImages(renderedHtml, page.images || {});
   previewContent.innerHTML     = renderCallouts(htmlWithImages);
-
-  previewTabs.querySelectorAll('.pv-tab').forEach((tabButton, tabIndex) =>
-    tabButton.classList.toggle('active', tabIndex === pageIndex)
-  );
 }
 
 function showPreviewError(message) {
   previewTabs.innerHTML = '';
   previewPath.textContent = '';
+  previewViewMode = 'rendered';
+  previewViewToggle.querySelectorAll('.pv-tab').forEach(b => b.classList.toggle('active', b.dataset.viewMode === 'rendered'));
   previewContent.innerHTML = `<p class="pv-error">${message}</p>`;
   previewPanel.classList.add('open');
 }

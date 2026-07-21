@@ -626,6 +626,10 @@ class ContentConverter
 
     private function cleanMarkdown(string $md): string
     {
+        // Normalize line endings first — a stray \r\n or bare \r from the source HTML
+        // breaks up a run of \n's (e.g. "\n\n\r\n\n"), so the "3+ blank lines" collapse
+        // below never matches it and an extra blank line leaks through to the output.
+        $md = str_replace(["\r\n", "\r"], "\n", $md);
         // Collapse 3+ blank lines to 2
         $md = preg_replace('/\n{3,}/', "\n\n", $md);
         // Insert a space before bold/italic markers that are directly adjacent to preceding text
@@ -644,9 +648,16 @@ class ContentConverter
         $md = preg_replace('/(?:- \[[^\]]*\]\(#tab-?\d+\)\n)+/', '', $md);
         // Strip blank headings left by Canvas tab-pane structure
         $md = preg_replace('/^#{1,6}\s*$/mu', '', $md);
-        // Ensure a space between an inline image and immediately-following text
-        // (e.g. "![alt](src)Text" → "![alt](src) Text")
-        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))(?=[^\s\n])/', '$1 ', $md);
+        // Separate an image from immediately-following text onto its own line — a leading
+        // <img> glued straight to paragraph text (no whitespace at all in the source HTML,
+        // typically a CSS float-positioned hero image with text flowing around it visually,
+        // a layout Markdown can't replicate) reads as "![alt](src)Text" with zero separator.
+        // A same-line space would just squeeze the image and text onto one line; a newline
+        // instead puts the image on its own line with the text starting right below it.
+        // Images already followed by real whitespace in the source (e.g. an inline icon
+        // followed by a short label, "<img> <strong>READ</strong>") never match this — the
+        // lookahead requires non-whitespace — so that pattern is untouched.
+        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))(?=[^\s\n])/', "$1\n", $md);
         return trim($md);
     }
 }
