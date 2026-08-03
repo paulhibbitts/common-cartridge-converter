@@ -27,7 +27,7 @@
   }
   .file-selected.visible { display: flex; }
 
-  /* ── Preview panel — its own visual identity, deliberately distinct from   ── */
+  /* ── Preview panel – its own visual identity, deliberately distinct from   ── */
   /* ── the tool's own teal chrome, so it never reads as the real Helios theme ── */
   .pv-panel { display: none; margin-top: 1rem; border: 1px solid #d6d3d1; border-radius: 12px; overflow: hidden; }
   .pv-panel.open { display: block; }
@@ -148,9 +148,11 @@
 
   <div class="max-w-[68ch] mx-auto">
 
-  <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed"><strong>A modern, clean home for your course, yours to keep.</strong> <a href="https://www.hibbittsdesign.org/Grav-Helios-Course-Hub-2a4bc7abbf574a61a65c891d226006c4" class="text-teal-700 dark:text-teal-400 underline underline-offset-2">Grav Helios Course Hub</a> gives you direct access to the content behind it: portable, future-friendly Markdown files, no database, platform independence.</p>
+  <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed"><a href="https://www.hibbittsdesign.org/Grav-Helios-Course-Hub-2a4bc7abbf574a61a65c891d226006c4" class="text-teal-700 dark:text-teal-400 underline underline-offset-2">Grav Helios Course Hub</a> <strong>gives your course a modern home your students can actually navigate</strong> – and gives you direct access to the content behind it: portable, future-friendly Markdown files, no database, platform independence, yours to keep.</p>
 
-  <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed">If needed, embed any page into Canvas, Moodle, or Brightspace with a URL parameter, and use your LMS as a partner for assignments and grading, with your content always directly accessible whenever you need it.</p>
+  <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed">For your students, that means a clear weekly structure they can navigate at a glance, visual course cards with icons and instructor info, and search that stays scoped to the current course – a more organized experience than a folder of LMS pages.</p>
+
+  <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed">If needed, embed any page into Canvas, Moodle, or Brightspace with a URL parameter, so students stay inside the LMS they already know with no new tool to learn – or run Course Hub standalone and pair it with an LMS or another platform for assignments and grading, a partnership you can change later without migrating your course content again.</p>
 
   <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed">For open publishers and OER-minded educators, your course is open and publicly accessible on the web by default, and the Markdown files themselves can also be made available for others to reuse and remix.</p>
 
@@ -198,10 +200,10 @@
 
     <form method="POST" action="convert.php" enctype="multipart/form-data" id="convert-form">
 
-      <div class="drop-zone border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg py-5 px-8 text-center cursor-pointer bg-stone-50 dark:bg-[#211f1e] transition-colors duration-150 hover:border-teal-400 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-[#163d33]" id="drop-zone" role="button" tabindex="0" aria-label="Upload file — click or press Enter to browse">
+      <div class="drop-zone border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg py-5 px-8 text-center cursor-pointer bg-stone-50 dark:bg-[#211f1e] transition-colors duration-150 hover:border-teal-400 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-[#163d33]" id="drop-zone" role="button" tabindex="0" aria-label="Upload file – click or press Enter to browse">
         <div class="text-[2rem] mb-2" aria-hidden="true">⬆</div>
         <p class="text-[15px] font-medium mb-1">Drop your .imscc or .zip file here</p>
-        <p class="text-[13px] text-stone-500 dark:text-stone-400">or click to browse — max 500 MB</p>
+        <p class="text-[13px] text-stone-500 dark:text-stone-400">or click to browse – max 500 MB</p>
         <input type="file" name="imscc" id="file-input" accept=".imscc,.zip" class="hidden">
       </div>
 
@@ -214,7 +216,7 @@
 
       <div class="mb-4 mt-3">
         <label class="block text-[13px] font-medium text-stone-600 dark:text-stone-300 mb-1" for="course-slug">
-          Course slug <span class="font-normal text-stone-500 dark:text-stone-400">(optional — leave blank to derive from course title)</span>
+          Course slug <span class="font-normal text-stone-500 dark:text-stone-400">(optional – leave blank to derive from course title)</span>
         </label>
         <input type="text" name="course_slug" id="course-slug"
                placeholder="e.g. my-course-2025"
@@ -226,17 +228,17 @@
           <input type="checkbox" name="strip_title_numbering" value="1" checked>
           Clean up numbered titles
         </label>
-        <span class="text-xs text-stone-500 dark:text-stone-400 pl-[21px]">Removes manual ordering prefixes (e.g. "1 Introduction" → "Introduction", "Module 2 - Basics" → "Basics") — redundant as Grav's own numbered folders provide the ordering.</span>
+        <span class="text-xs text-stone-500 dark:text-stone-400 pl-[21px]">Removes manual ordering prefixes (e.g. "1 Introduction" → "Introduction", "Module 2 - Basics" → "Basics") – redundant as Grav's own numbered folders provide the ordering.</span>
         <label class="flex items-center gap-[7px] text-[15px] cursor-pointer mt-2">
           <input type="checkbox" name="skip_files" value="1" checked>
           Skip attached files (PDFs, videos, etc.)
         </label>
-        <span class="text-xs text-stone-500 dark:text-stone-400 pl-[21px]">Omit non-image binary files from <code>web_resources/</code> — keeps the ZIP small. You can manually copy these files after import.</span>
+        <span class="text-xs text-stone-500 dark:text-stone-400 pl-[21px]">Omit non-image binary files from <code>web_resources/</code> – keeps the ZIP small. You can manually copy these files after import.</span>
         <label class="flex items-center gap-[7px] text-[15px] cursor-pointer mt-2">
           <input type="checkbox" name="skip_image_download" value="1">
           Skip image download (use remote URLs)
         </label>
-        <span class="text-xs text-stone-500 dark:text-stone-400 pl-[21px]">By default, images embedded in page content are downloaded and included in the ZIP. Enable this to keep original URLs instead — images still display, but from their remote source.</span>
+        <span class="text-xs text-stone-500 dark:text-stone-400 pl-[21px]">By default, images embedded in page content are downloaded and included in the ZIP. Enable this to keep original URLs instead – images still display, but from their remote source.</span>
         <div class="mt-3 border border-stone-200 dark:border-stone-700 rounded-md px-3 pt-2 pb-3">
           <p class="text-xs font-medium text-stone-500 dark:text-stone-400 mb-2">Default pages</p>
           <div class="flex flex-col gap-[3px]">
@@ -272,7 +274,7 @@
       </div>
 
       <p id="converting-note" class="text-xs text-stone-500 dark:text-stone-400 text-center mt-2" style="display:none">
-        Conversion in progress — large courses may take up to a minute. Please wait&hellip;
+        Conversion in progress – large courses may take up to a minute. Please wait&hellip;
       </p>
 
       <input type="hidden" name="download_token" id="download-token">
@@ -312,7 +314,7 @@
         <p><strong>What's not included?</strong><br>
         Quizzes, discussions, and assignments have no equivalent in Helios Course Hub and are not included. A full count appears in <code>conversion-notes.txt</code> in the ZIP.</p>
         <p><strong>What happens to your file?</strong><br>
-        The <code>.imscc</code> is extracted to a server temp directory, parsed, converted, and packaged. The temp files are immediately deleted after the ZIP is streamed to your browser — nothing is stored on the server.</p>
+        The <code>.imscc</code> is extracted to a server temp directory, parsed, converted, and packaged. The temp files are immediately deleted after the ZIP is streamed to your browser – nothing is stored on the server.</p>
       </div>
     </details>
   </div>
@@ -358,7 +360,7 @@ function formatBytes(b) {
   return (b / 1048576).toFixed(1) + ' MB';
 }
 
-// Allows ~2s/MB for upload plus 60s processing, clamped to [2min, 10min] — used as a
+// Allows ~2s/MB for upload plus 60s processing, clamped to [2min, 10min] – used as a
 // safety fallback for the full convert flow below, and as a fetch abort timeout for the
 // preview request, so a very large upload fails with a clear message instead of an
 // indefinite spinner.
@@ -455,8 +457,8 @@ document.getElementById('convert-form').addEventListener('submit', () => {
   const fileSizeBytes = fileInput.files[0]?.size ?? 0;
   const timeoutMs     = scaledTimeoutMs(fileSizeBytes);
   const sizeNote      = fileSizeBytes / (1024 * 1024) > 50
-    ? 'Large file — upload and conversion may take several minutes. Please wait…'
-    : 'Conversion in progress — large courses may take up to a minute. Please wait…';
+    ? 'Large file – upload and conversion may take several minutes. Please wait…'
+    : 'Conversion in progress – large courses may take up to a minute. Please wait…';
   convertingNote.textContent = sizeNote;
   convertingNote.style.display = '';
 
@@ -483,7 +485,7 @@ if (errParam) {
 
 // Browsers may restore this page from back/forward cache (e.g. after clicking
 // "← Try again" on the error page, or using the browser back button) with its JS
-// state frozen exactly as it was on the way out — file still selected, button still
+// state frozen exactly as it was on the way out – file still selected, button still
 // showing "Converting…" and disabled. Force a clean reset whenever that happens.
 window.addEventListener('pageshow', e => {
   if (e.persisted) {
@@ -492,10 +494,10 @@ window.addEventListener('pageshow', e => {
   }
 });
 
-// ── Preview sample pages — optional, parallel to the main Convert & Download flow ──
+// ── Preview sample pages – optional, parallel to the main Convert & Download flow ──
 
 let previewPages = null;
-let previewViewMode = 'rendered'; // 'rendered' | 'markdown' — persists across page-tab switches
+let previewViewMode = 'rendered'; // 'rendered' | 'markdown' – persists across page-tab switches
 let currentPageIndex = 0;
 
 previewViewToggle.querySelectorAll('.pv-tab').forEach(toggleButton =>
@@ -516,7 +518,7 @@ function renderPreviewTabs() {
 }
 
 // Wiki page content can carry a Grav "[objectives]...[/objectives]" shortcode straight through
-// from the source LMS page — marked.js doesn't know it, so without this it prints the literal
+// from the source LMS page – marked.js doesn't know it, so without this it prints the literal
 // brackets as text. Blank lines around the injected <div> are required: without them, marked's
 // HTML-block parser swallows whatever markdown immediately follows as raw HTML text instead of
 // parsing it, since it treats the block as continuing until a blank line.
@@ -528,7 +530,7 @@ function renderObjectivesShortcode(markdown) {
 
 // Course Hub content uses Obsidian/GFM-style alert blockquotes ("> [!TIP] ...", "> [!NOTE] ...",
 // "> [!WARNING] ...", "> [!IMPORTANT] ..."), not a bracket-tag shortcode. marked.js parses these
-// as plain blockquotes with the literal "[!TIP]" text inside — it doesn't know to style them.
+// as plain blockquotes with the literal "[!TIP]" text inside – it doesn't know to style them.
 // Post-process the already-rendered HTML: find blockquotes that start with one of these markers
 // and swap them for a styled callout, matching the treatment Course Hub itself gives them.
 function renderCallouts(html) {
@@ -565,11 +567,11 @@ function extractYouTubeId(url) {
   return match ? match[1] : null;
 }
 
-// CC embeds images by local filename (e.g. "Watch-Icon.png"), not a full URL — the browser
+// CC embeds images by local filename (e.g. "Watch-Icon.png"), not a full URL – the browser
 // can't resolve that on its own. When the server already had the matching binary on hand
 // (see embeddedImagesForPage() in preview.php) it comes back as a base64 data URI in
-// page.images, and we use it directly. Only genuinely unavailable images — download failed,
-// or too large to embed — fall back to a placeholder instead of a broken-image icon.
+// page.images, and we use it directly. Only genuinely unavailable images – download failed,
+// or too large to embed – fall back to a placeholder instead of a broken-image icon.
 function replaceLocalImages(html, images) {
   const container = document.createElement('div');
   container.innerHTML = html;
@@ -585,7 +587,7 @@ function replaceLocalImages(html, images) {
 
     const placeholder = document.createElement('span');
     placeholder.className = 'pv-img-blocked';
-    placeholder.innerHTML = '<span aria-hidden="true">🖼</span> Image not available in preview — included in the downloaded ZIP';
+    placeholder.innerHTML = '<span aria-hidden="true">🖼</span> Image not available in preview – included in the downloaded ZIP';
     img.replaceWith(placeholder);
   });
   return container.innerHTML;
@@ -603,7 +605,7 @@ function showPreviewPage(pageIndex) {
   renderCurrentView();
 }
 
-// Renders previewPages[currentPageIndex] in previewViewMode — split out from showPreviewPage()
+// Renders previewPages[currentPageIndex] in previewViewMode – split out from showPreviewPage()
 // so the Preview/Markdown toggle can re-render without switching pages.
 function renderCurrentView() {
   const page = previewPages[currentPageIndex];
@@ -611,7 +613,7 @@ function renderCurrentView() {
   if (previewViewMode === 'markdown') {
     const pre = document.createElement('pre');
     pre.className = 'pv-raw';
-    pre.textContent = page.markdown; // textContent, not innerHTML — escapes course content safely
+    pre.textContent = page.markdown; // textContent, not innerHTML – escapes course content safely
     previewContent.innerHTML = '';
     previewContent.appendChild(pre);
     return;
@@ -660,8 +662,8 @@ previewBtn.addEventListener('click', async () => {
     previewPanel.classList.add('open');
   } catch (e) {
     showPreviewError(e.name === 'AbortError'
-      ? 'Preview timed out — this file may be too large to preview on this web host. Try "Convert & Download ZIP" instead, or self-host this open-source tool for large files.'
-      : 'Preview failed — could not reach the server.');
+      ? 'Preview timed out – this file may be too large to preview on this web host. Try "Convert & Download ZIP" instead, or self-host this open-source tool for large files.'
+      : 'Preview failed – could not reach the server.');
   } finally {
     clearTimeout(timeout);
     previewBtn.disabled = fileInput.files.length === 0;
