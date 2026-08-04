@@ -419,78 +419,90 @@ class CourseHubBuilder
         $p    = $this->parser;
         $lines = [];
 
+        $addHeader = function (string $title) use (&$lines) {
+            $lines[] = $title;
+            $lines[] = str_repeat('-', strlen($title));
+        };
+
         $lines[] = 'Course Cartridge Conversion Notes';
         $lines[] = str_repeat('=', 34);
+        $lines[] = 'Generated: ' . date('Y-m-d');
         $lines[] = '';
-        $lines[] = 'COURSE METADATA';
-        $lines[] = '---------------';
-        $lines[] = 'Title:   ' . ($p->courseTitle ?: '(none)');
-        $lines[] = 'Code:    ' . ($p->courseCode  ?: '(none)');
-        $lines[] = 'License: ' . ($p->license     ?: '(not specified)');
-        if ($p->licenseUrl) $lines[] = 'License URL: ' . $p->licenseUrl;
+
+        $addHeader('Course Metadata');
+        $lines[] = '  Title:   ' . ($p->courseTitle ?: '(none)');
+        $lines[] = '  Code:    ' . ($p->courseCode  ?: '(none)');
+        $lines[] = '  License: ' . ($p->license     ?: '(not specified)');
+        if ($p->licenseUrl) $lines[] = '  License URL: ' . $p->licenseUrl;
         if ($p->courseImagePath) {
-            $lines[] = 'Course image: ' . $this->courseBase . '/course_image/' . basename($p->courseImagePath);
+            $lines[] = '  Course image: ' . $this->courseBase . '/course_image/' . basename($p->courseImagePath);
         } elseif ($p->courseImageUrl) {
-            $lines[] = 'Course image: ' . $p->courseImageUrl . ' (external URL — not included in ZIP)';
+            $lines[] = '  Course image: ' . $p->courseImageUrl . ' (external URL — not included in ZIP)';
         }
         $lines[] = '';
 
-        $lines[] = 'STRUCTURE';
-        $lines[] = '---------';
-        $lines[] = 'Modules:    ' . count($p->modules);
-        $lines[] = 'Wiki pages: ' . count($p->wikiPages);
-        $lines[] = 'Pages created: ' . $this->pageCount;
+        $addHeader('Structure');
+        $lines[] = '  Modules:    ' . count($p->modules);
+        $lines[] = '  Wiki pages: ' . count($p->wikiPages);
+        $lines[] = '  Pages created: ' . $this->pageCount;
         $imageCount = count($this->pendingImages);
         if ($imageCount > 0) {
             if ($this->skipImageDownload) {
                 $localCount = count(array_filter($this->pendingImages, fn($i) => $i['localPath'] !== null));
-                $lines[] = 'Images: ' . $localCount . ' local (included in ZIP); external images use remote URLs';
+                $lines[] = '  Images: ' . $localCount . ' local (included in ZIP); external images use remote URLs';
             } else {
                 $failNote = $this->imageFailures > 0 ? '; ' . $this->imageFailures . ' failed (see warnings)' : '';
-                $lines[] = 'Images: ' . count($this->imageData) . ' downloaded and included in ZIP' . $failNote;
+                $lines[] = '  Images: ' . count($this->imageData) . ' downloaded and included in ZIP' . $failNote;
             }
+        }
+        if ($this->externalUrlCount > 0) {
+            $lines[] = '  External URLs:  ' . $this->externalUrlCount . ' (converted to Markdown links)';
+        }
+        if ($this->attachmentCount > 0) {
+            $included = !$this->skipFiles ? 'included in ZIP under files/' : 'not included';
+            $lines[] = '  Attachments:    ' . $this->attachmentCount . ' (' . $included . ')';
         }
         $lines[] = '';
 
-        $lines[] = 'DROPPED CONTENT';
-        $lines[] = '---------------';
+        $addHeader('Dropped Content');
         if (empty($this->droppedByType)) {
-            $lines[] = 'None.';
+            $lines[] = '  None.';
         } else {
             foreach ($this->droppedByType as $type => $count) {
                 $lines[] = sprintf('  %-30s %d', $type, $count);
             }
             $lines[] = '';
-            $lines[] = 'Total dropped items: ' . $this->droppedCount;
+            $lines[] = '  Total dropped items: ' . $this->droppedCount;
         }
         $lines[] = '';
 
+        $addHeader('Next Steps');
+        $lines[] = '  1. Copy the course folder from inside the extracted pages folder into';
+        $lines[] = '     your Grav Helios Course Hub installation\'s user/pages/ directory';
+        $lines[] = '  2. Review this file for any warnings or manual fixes needed';
+        $lines[] = '';
+
+        $addHeader('Conversion Settings');
+        $lines[] = '  Attached files:  ' . ($this->skipFiles ? 'skipped' : 'included in ZIP under files/');
+        $lines[] = '  Image download:  ' . ($this->skipImageDownload ? 'skipped — images kept as remote URLs' : 'downloaded and bundled in ZIP');
+        $lines[] = '  Numbered titles: ' . ($this->stripTitleNumbering ? 'cleaned up (leading numbering stripped)' : 'left as-is');
+        $lines[] = '  Essentials page: ' . ($this->includeEssentials ? 'included' : 'not included');
+        $lines[] = '  Resources page:  ' . ($this->includeResources ? 'included' : 'not included');
+        $lines[] = '  Syllabus page:   ' . ($this->includeSyllabus ? 'included' : 'not included');
+        $lines[] = '';
+
         if (!empty($this->warnings)) {
-            $lines[] = 'WARNINGS';
-            $lines[] = '--------';
+            $addHeader('Warnings');
             foreach ($this->warnings as $w) {
                 $lines[] = '  [warn] ' . $w;
             }
             $lines[] = '';
         }
 
-        if ($this->externalUrlCount > 0) {
-            $lines[] = 'External URLs:  ' . $this->externalUrlCount . ' (converted to Markdown links)';
-        }
-        if ($this->attachmentCount > 0) {
-            $included = !$this->skipFiles ? 'included in ZIP under files/' : 'not included (Skip attached files was on)';
-            $lines[] = 'Attachments:    ' . $this->attachmentCount . ' (' . $included . ')';
-        }
-        $lines[] = '';
-
-        $lines[] = 'KNOWN LIMITATIONS';
-        $lines[] = '-----------------';
-        $lines[] = '- Quizzes and discussions are not supported and have been dropped.';
-        $lines[] = '- Internal Canvas page links are rewritten to the converted page when the target is included in this course; otherwise the link points to "#" as a placeholder.';
-        $lines[] = '- LTI tool links appear as [iframe] shortcodes; authentication context is not preserved.';
-        if ($this->skipFiles) {
-            $lines[] = '- Attached files (PDFs etc.) were skipped — copy them manually from your .imscc export.';
-        }
+        $addHeader('Known Limitations');
+        $lines[] = '  - Quizzes and discussions are not supported and have been dropped.';
+        $lines[] = '  - Internal Canvas page links are rewritten to the converted page when the target is included in this course; otherwise the link points to "#" as a placeholder.';
+        $lines[] = '  - LTI tool links appear as [iframe] shortcodes; authentication context is not preserved.';
         $lines[] = '';
 
         $this->addFile('conversion-notes.txt', implode("\n", $lines) . "\n");
