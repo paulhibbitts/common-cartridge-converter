@@ -424,8 +424,9 @@ class CourseHubBuilder
             $lines[] = str_repeat('-', strlen($title));
         };
 
-        $lines[] = 'Course Cartridge Conversion Notes';
-        $lines[] = str_repeat('=', 34);
+        $title = 'Common Cartridge Conversion Notes';
+        $lines[] = $title;
+        $lines[] = str_repeat('=', strlen($title));
         $lines[] = 'Generated: ' . date('Y-m-d');
         $lines[] = '';
 
