@@ -116,7 +116,8 @@ class CourseHubBuilder
     private function buildCourseMd(): void
     {
         $desc = $this->parser->courseTitle ? "\ndescription: '" . Helpers::yamlEscape($this->parser->courseTitle) . "'" : '';
-        $yaml = "---\npublished: true\nroutable: false$desc\n---\n";
+        $body = "Use the Admin Panel Editor (or page frontmatter) to set the icon, description, and published status of this course's card on the Courses homepage.";
+        $yaml = "---\npublished: true\nroutable: false$desc\n---\n\n$body\n";
         $this->addFile("$this->courseBase/course.md", $yaml);
     }
 
