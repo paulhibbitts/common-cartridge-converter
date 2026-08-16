@@ -491,8 +491,7 @@ class CourseHubBuilder
         if ($this->portableMarkdown) {
             $lines[] = '  1. Copy the course folder from inside the extracted pages folder into';
             $lines[] = '     any Grav site\'s user/pages/ directory (no Helios plugin required),';
-            $lines[] = '     or adapt it for another Markdown-based platform (GitHub, Docsify,';
-            $lines[] = '     Docsify-This, Jekyll, Hugo, etc.)';
+            $lines[] = '     or adapt it for another Markdown-based platform';
             $lines[] = '  2. Review this file for any warnings or manual fixes needed';
         } else {
             $lines[] = '  1. Copy the course folder from inside the extracted pages folder into';
@@ -525,6 +524,11 @@ class CourseHubBuilder
         $lines[] = '  - Quizzes and discussions are not supported and have been dropped.';
         $lines[] = '  - Internal Canvas page links are rewritten to the converted page when the target is included in this course; otherwise the link points to "#" as a placeholder.';
         $lines[] = '  - LTI tool links appear as plain links to the original tool; authentication context is not preserved.';
+        if ($this->portableMarkdown) {
+            $lines[] = '  - Internal cross-reference links use Grav-style absolute paths (e.g. /modules/some-page)';
+            $lines[] = '    and will not resolve outside a Grav site — check/update these manually if publishing';
+            $lines[] = '    to another platform';
+        }
         $lines[] = '';
 
         $this->addFile('conversion-notes.txt', implode("\n", $lines) . "\n");
