@@ -20,6 +20,7 @@ class CourseHubBuilder
     private bool   $includeEssentials;
     private bool   $includeResources;
     private bool   $includeSyllabus;
+    private bool   $portableMarkdown;
     private string $courseBase;           // e.g. "pages/my-course-2025"
     private array $pendingImages   = []; // ['pageFolder', 'filename', 'localPath'|null, 'url'|null]
     private array $imageData       = []; // zipPath => binary string (populated by downloadPendingImages)
@@ -38,16 +39,18 @@ class CourseHubBuilder
         bool $stripTitleNumbering = false,
         bool $includeEssentials = true,
         bool $includeResources = true,
-        bool $includeSyllabus = true
+        bool $includeSyllabus = true,
+        bool $portableMarkdown = false
     ) {
         $this->parser              = $parser;
-        $this->converter           = new ContentConverter($parser->dir, $skipImageDownload, $skipFiles);
+        $this->converter           = new ContentConverter($parser->dir, $skipImageDownload, $skipFiles, $portableMarkdown);
         $this->skipFiles           = $skipFiles;
         $this->skipImageDownload   = $skipImageDownload;
         $this->stripTitleNumbering = $stripTitleNumbering;
         $this->includeEssentials   = $includeEssentials;
         $this->includeResources    = $includeResources;
         $this->includeSyllabus     = $includeSyllabus;
+        $this->portableMarkdown    = $portableMarkdown;
         $this->courseBase          = 'pages/' . $parser->courseSlug;
     }
 
@@ -89,7 +92,7 @@ class CourseHubBuilder
             }
             if ($remoteCount > 100) {
                 $this->skipImageDownload = true;
-                $this->converter         = new ContentConverter($this->parser->dir, true, $this->skipFiles);
+                $this->converter         = new ContentConverter($this->parser->dir, true, $this->skipFiles, $this->portableMarkdown);
                 $this->warnings[]        = "Course has $remoteCount remote images — too many to download reliably in a web request. Images will use remote URLs instead. Enable \"Skip image download\" to suppress this message.";
             }
         }
@@ -115,6 +118,10 @@ class CourseHubBuilder
 
     private function buildCourseMd(): void
     {
+        // Purely Course Hub homepage-card config (no template exists for it) — has no
+        // meaning without the plugin, so Standard Markdown mode omits it entirely.
+        if ($this->portableMarkdown) return;
+
         $desc = $this->parser->courseTitle ? "\ndescription: '" . Helpers::yamlEscape($this->parser->courseTitle) . "'" : '';
         $body = "Use the Admin Panel Editor (or page frontmatter) to set the icon, description, and published status of this course's card on the Courses homepage.";
         $yaml = "---\npublished: true\nroutable: false$desc\n---\n\n$body\n";
@@ -230,7 +237,9 @@ class CourseHubBuilder
     private function buildModuleListing(): void
     {
         $base = "$this->courseBase/30.modules";
-        $fm   = "---\ntitle: Modules\npublished: true\ndescription: 'Below are the modules available for this course.'\ntaxonomy:\n    category: docs\nnavigation:\n    toc_position: hidden\n---\n";
+        $fm   = $this->portableMarkdown
+            ? "---\ntitle: Modules\n---\n"
+            : "---\ntitle: Modules\npublished: true\ndescription: 'Below are the modules available for this course.'\ntaxonomy:\n    category: docs\nnavigation:\n    toc_position: hidden\n---\n";
         $this->addFile("$base/module.md", $fm);
     }
 
@@ -479,12 +488,23 @@ class CourseHubBuilder
         $lines[] = '';
 
         $addHeader('Next Steps');
-        $lines[] = '  1. Copy the course folder from inside the extracted pages folder into';
-        $lines[] = '     your Grav Helios Course Hub installation\'s user/pages/ directory';
-        $lines[] = '  2. Review this file for any warnings or manual fixes needed';
+        if ($this->portableMarkdown) {
+            $lines[] = '  1. Copy the course folder from inside the extracted pages folder into';
+            $lines[] = '     any Grav site\'s user/pages/ directory (no Helios plugin required),';
+            $lines[] = '     or adapt it for another Markdown-based platform (GitHub, Docsify,';
+            $lines[] = '     Docsify-This, Jekyll, Hugo, etc.)';
+            $lines[] = '  2. Review this file for any warnings or manual fixes needed';
+        } else {
+            $lines[] = '  1. Copy the course folder from inside the extracted pages folder into';
+            $lines[] = '     your Grav Helios Course Hub installation\'s user/pages/ directory';
+            $lines[] = '  2. Review this file for any warnings or manual fixes needed';
+        }
         $lines[] = '';
 
         $addHeader('Conversion Settings');
+        $lines[] = '  Format:          ' . ($this->portableMarkdown
+            ? 'Standard Markdown (no Helios shortcodes)'
+            : 'Grav Helios Course Hub (shortcodes + full frontmatter)');
         $lines[] = '  Attached files:  ' . ($this->skipFiles ? 'skipped' : 'included in ZIP under files/');
         $lines[] = '  Image download:  ' . ($this->skipImageDownload ? 'skipped — images kept as remote URLs' : 'downloaded and bundled in ZIP');
         $lines[] = '  Numbered titles: ' . ($this->stripTitleNumbering ? 'cleaned up (leading numbering stripped)' : 'left as-is');
@@ -504,7 +524,7 @@ class CourseHubBuilder
         $addHeader('Known Limitations');
         $lines[] = '  - Quizzes and discussions are not supported and have been dropped.';
         $lines[] = '  - Internal Canvas page links are rewritten to the converted page when the target is included in this course; otherwise the link points to "#" as a placeholder.';
-        $lines[] = '  - LTI tool links appear as [iframe] shortcodes; authentication context is not preserved.';
+        $lines[] = '  - LTI tool links appear as plain links to the original tool; authentication context is not preserved.';
         $lines[] = '';
 
         $this->addFile('conversion-notes.txt', implode("\n", $lines) . "\n");
@@ -691,7 +711,10 @@ class CourseHubBuilder
     {
         if (preg_match('/youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]+)/', $url, $m)
             || preg_match('/youtu\.be\/([a-zA-Z0-9_-]+)/', $url, $m)) {
-            return '[youtube]https://www.youtube.com/watch?v=' . $m[1] . "[/youtube]\n";
+            $watchUrl = 'https://www.youtube.com/watch?v=' . $m[1];
+            return $this->portableMarkdown
+                ? '[' . ($title ?: 'Watch on YouTube') . '](' . $watchUrl . ")\n"
+                : '[youtube]' . $watchUrl . "[/youtube]\n";
         }
         if (str_contains($url, 'vimeo.com')) {
             $label = $title ?: 'Watch video on Vimeo';
@@ -719,6 +742,10 @@ class CourseHubBuilder
     // Build a standard Grav page frontmatter block
     private function pageFrontmatter(string $title, array $extras = [], bool $hideToc = false): string
     {
+        if ($this->portableMarkdown) {
+            return "---\ntitle: '$title'\n---\n\n";
+        }
+
         $lines = ["---", "title: '$title'", "published: true"];
         foreach ($extras as $line) $lines[] = $line;
         $lines[] = "taxonomy:";

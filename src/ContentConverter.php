@@ -10,13 +10,15 @@ class ContentConverter
     private string $cartridgeDir;
     private bool   $skipImageDownload;
     private bool   $skipFiles;
+    private bool   $portableMarkdown;
     private array  $imageFilenames = []; // filename => count, for dedup within one convert() call
 
-    public function __construct(string $cartridgeDir = '', bool $skipImageDownload = false, bool $skipFiles = false)
+    public function __construct(string $cartridgeDir = '', bool $skipImageDownload = false, bool $skipFiles = false, bool $portableMarkdown = false)
     {
         $this->cartridgeDir      = rtrim($cartridgeDir, '/');
         $this->skipImageDownload = $skipImageDownload;
         $this->skipFiles         = $skipFiles;
+        $this->portableMarkdown  = $portableMarkdown;
     }
 
     // Convert a Canvas wiki HTML page to Markdown
@@ -147,10 +149,14 @@ class ContentConverter
         $title = html_entity_decode($title, ENT_QUOTES, 'UTF-8');
         $src   = html_entity_decode($src, ENT_QUOTES, 'UTF-8');
 
-        // YouTube — [youtube]url[/youtube] shortcode, same syntax the Pressbooks converter uses
+        // YouTube — [youtube]url[/youtube] shortcode, same syntax the Pressbooks converter uses.
+        // In Standard Markdown mode, use a plain link instead (no Helios plugin to render the shortcode).
         if (preg_match('/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/', $src, $m)
             || preg_match('/youtu\.be\/([a-zA-Z0-9_-]+)/', $src, $m)) {
-            return '[youtube]https://www.youtube.com/watch?v=' . $m[1] . '[/youtube]';
+            $watchUrl = 'https://www.youtube.com/watch?v=' . $m[1];
+            return $this->portableMarkdown
+                ? '[' . ($title ?: 'Watch on YouTube') . '](' . $watchUrl . ')'
+                : '[youtube]' . $watchUrl . '[/youtube]';
         }
 
         // Vimeo — link out since no supported embed shortcode
@@ -544,6 +550,13 @@ class ContentConverter
         return $href;
     }
 
+    // Standard Markdown mode: GFM alert type + label to use in place of each bracket shortcode tag.
+    private static array $portableCalloutMap = [
+        'objectives'    => ['TIP', 'Learning Objectives'],
+        'key-takeaways' => ['IMPORTANT', 'Key Takeaways'],
+        'reflection'    => ['NOTE', 'Reflection'],
+    ];
+
     private function applyEducationalShortcodes(string $md): string
     {
         $map = [
@@ -608,10 +621,18 @@ class ContentConverter
                 }
 
                 if (!empty($listLines)) {
-                    $out[] = '[' . $matched . ']';
-                    foreach ($introLines as $il) { $out[] = $il; $out[] = ''; }
-                    foreach ($listLines as $ll) $out[] = $ll;
-                    $out[] = '[/' . $matched . ']';
+                    if ($this->portableMarkdown) {
+                        [$alertType, $label] = self::$portableCalloutMap[$matched] ?? ['NOTE', ucfirst(str_replace('-', ' ', $matched))];
+                        $out[] = '> [!' . $alertType . ']';
+                        $out[] = '> **' . $label . '**';
+                        foreach ($introLines as $il) { $out[] = $il === '' ? '>' : '> ' . $il; $out[] = '>'; }
+                        foreach ($listLines as $ll) $out[] = $ll === '' ? '>' : '> ' . $ll;
+                    } else {
+                        $out[] = '[' . $matched . ']';
+                        foreach ($introLines as $il) { $out[] = $il; $out[] = ''; }
+                        foreach ($listLines as $ll) $out[] = $ll;
+                        $out[] = '[/' . $matched . ']';
+                    }
                     $i = $j;
                     continue;
                 }

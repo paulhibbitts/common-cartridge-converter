@@ -43,6 +43,7 @@ $stripTitleNumbering = !empty($_POST['strip_title_numbering']);
 $includeEssentials   = !empty($_POST['include_essentials']);
 $includeResources    = !empty($_POST['include_resources']);
 $includeSyllabus     = !empty($_POST['include_syllabus']);
+$portableMarkdown    = !empty($_POST['portable_markdown']);
 
 $tmpDir = sys_get_temp_dir() . '/cc_preview_' . uniqid();
 mkdir($tmpDir, 0700, true);
@@ -78,7 +79,7 @@ try {
 
     $builder = new CourseHubBuilder(
         $parser, $skipFiles, $skipImageDownload, $stripTitleNumbering,
-        $includeEssentials, $includeResources, $includeSyllabus
+        $includeEssentials, $includeResources, $includeSyllabus, $portableMarkdown
     );
     $zipPath = $builder->build();
     @unlink($zipPath); // preview only needs the in-memory pages, not the zip file itself
