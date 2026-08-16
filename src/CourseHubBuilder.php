@@ -711,10 +711,9 @@ class CourseHubBuilder
     {
         if (preg_match('/youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]+)/', $url, $m)
             || preg_match('/youtu\.be\/([a-zA-Z0-9_-]+)/', $url, $m)) {
-            $watchUrl = 'https://www.youtube.com/watch?v=' . $m[1];
             return $this->portableMarkdown
-                ? '[' . ($title ?: 'Watch on YouTube') . '](' . $watchUrl . ")\n"
-                : '[youtube]' . $watchUrl . "[/youtube]\n";
+                ? $this->converter->youtubeIframe($m[1], $title) . "\n"
+                : '[youtube]https://www.youtube.com/watch?v=' . $m[1] . "[/youtube]\n";
         }
         if (str_contains($url, 'vimeo.com')) {
             $label = $title ?: 'Watch video on Vimeo';

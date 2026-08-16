@@ -150,13 +150,13 @@ class ContentConverter
         $src   = html_entity_decode($src, ENT_QUOTES, 'UTF-8');
 
         // YouTube — [youtube]url[/youtube] shortcode, same syntax the Pressbooks converter uses.
-        // In Standard Markdown mode, use a plain link instead (no Helios plugin to render the shortcode).
+        // In Standard Markdown mode, embed YouTube's own official <iframe> code instead
+        // (no Helios plugin needed to render it).
         if (preg_match('/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/', $src, $m)
             || preg_match('/youtu\.be\/([a-zA-Z0-9_-]+)/', $src, $m)) {
-            $watchUrl = 'https://www.youtube.com/watch?v=' . $m[1];
             return $this->portableMarkdown
-                ? '[' . ($title ?: 'Watch on YouTube') . '](' . $watchUrl . ')'
-                : '[youtube]' . $watchUrl . '[/youtube]';
+                ? $this->youtubeIframe($m[1], $title)
+                : '[youtube]https://www.youtube.com/watch?v=' . $m[1] . '[/youtube]';
         }
 
         // Vimeo — link out since no supported embed shortcode
@@ -174,6 +174,21 @@ class ContentConverter
         // Generic iframe (H5P, LTI-lite, etc.) — link out since no supported embed shortcode
         $label = $title ?: 'Open interactive activity';
         return '> [' . $label . '](' . $src . ')';
+    }
+
+    // Standard Markdown mode: YouTube's own official embed code (Share → Embed) — no extra
+    // script or wrapper needed, since a video's aspect ratio is fixed and the YouTube player
+    // handles its own sizing. Public so CourseHubBuilder::externalUrlBody() can reuse it for
+    // ExternalUrl module items (a YouTube link, not an embedded iframe) without duplicating
+    // the markup here a second time.
+    public function youtubeIframe(string $videoId, string $title): string
+    {
+        $src       = htmlspecialchars('https://www.youtube.com/embed/' . $videoId, ENT_QUOTES, 'UTF-8');
+        $titleAttr = htmlspecialchars($title ?: 'YouTube video player', ENT_QUOTES, 'UTF-8');
+        return '<iframe width="560" height="315" src="' . $src . '" title="' . $titleAttr . '" '
+             . 'frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; '
+             . 'gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" '
+             . 'allowfullscreen></iframe>';
     }
 
     private function nodeToMarkdown(\DOMNode $node, int $depth): string
