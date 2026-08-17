@@ -696,11 +696,16 @@ class ContentConverter
     }
 
     // Puts an image on its own line when the source glued it directly to following text
-    // with no separator at all (e.g. a floated hero image sharing a <p> with its caption).
-    // An image already followed by real whitespace, like an inline icon before a short
-    // label, is left alone.
+    // with no separator at all (e.g. a floated hero image sharing a <p> with its caption),
+    // and promotes a single newline after an image to a full blank-line paragraph break
+    // (a bare <img> immediately followed by a sibling <p> with no blank line between them —
+    // otherwise Markdown treats the following text as a soft-wrapped continuation of the
+    // same paragraph rather than its own block). An image followed by a space on the same
+    // line, like an inline icon before a short label, is left alone either way.
     private function breakImageFromFollowingText(string $md): string
     {
-        return preg_replace('/(\!\[[^\]]*\]\([^)]+\))(?=[^\s\n])/', "$1\n", $md);
+        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))(?=[^\s\n])/', "$1\n", $md);
+        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))\n(?!\n)([^\n])/', "$1\n\n$2", $md);
+        return $md;
     }
 }
