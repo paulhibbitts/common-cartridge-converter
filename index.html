@@ -309,6 +309,7 @@
       <summary class="text-[13px] text-stone-500 dark:text-stone-400 cursor-pointer select-none hover:text-stone-600 dark:hover:text-stone-300">What exactly does this do?</summary>
       <div class="tech-summary-body mt-3 text-[13px] text-stone-500 dark:text-stone-400 leading-[1.7]">
         <p>It's a self-contained PHP web app running on the server. You upload a Common Cartridge <code>.imscc</code> export, it parses the module structure and converts wiki page content to Markdown, then hands you back a ZIP ready to drop into Grav.</p>
+        <p>Toggle <strong>Standard Markdown</strong> above and shortcodes/frontmatter switch to plain-Markdown equivalents – GFM alert blocks instead of callout shortcodes, a real <code>&lt;iframe&gt;</code> embed instead of <code>[youtube]</code>, no Helios-only frontmatter – so the output works outside Grav too.</p>
         <p><strong>What's converted?</strong></p>
         <ol>
           <li>Course modules → <code>chapter</code> landing pages with numbered child pages</li>
@@ -648,7 +649,7 @@ previewBtn.addEventListener('click', async () => {
   if (!file) return;
 
   previewBtn.disabled = true;
-  previewBtnText.textContent = 'Loading preview…';
+  previewBtnText.textContent = 'Creating preview…';
   previewSpinner.classList.remove('hidden');
 
   const controller = new AbortController();
