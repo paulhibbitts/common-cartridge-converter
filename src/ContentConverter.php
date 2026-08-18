@@ -384,15 +384,35 @@ class ContentConverter
 
     private function tableToMarkdown(\DOMNode $table): string
     {
-        $xpath = new \DOMXPath($table->ownerDocument);
+        // Canvas layout markup sometimes nests one table inside another (e.g. an outer
+        // table for a banner image row, wrapping an inner table for the real content).
+        // A plain ".//tr"/".//td" XPath descendant query would match the nested table's
+        // rows/cells too, on top of the normal recursive walk that already renders them
+        // once when it reaches the nested <table> node — double-rendering that content.
+        // directRows() only collects rows that belong to this table itself.
+        $rows = $this->directRows($table);
 
         // Canvas uses tables heavily for layout (no <th>). Render those as content blocks
         // rather than collapsing cell structure into a compressed Markdown table row.
-        if ($xpath->query('.//th', $table)->length === 0) {
+        $hasHeader = false;
+        foreach ($rows as $tr) {
+            foreach ($tr->childNodes as $cell) {
+                if ($cell->nodeType === XML_ELEMENT_NODE && strtolower($cell->nodeName) === 'th') {
+                    $hasHeader = true;
+                    break 2;
+                }
+            }
+        }
+
+        if (!$hasHeader) {
             $blocks = [];
-            foreach ($xpath->query('.//td', $table) as $td) {
-                $content = trim($this->childrenToMarkdown($td, 0));
-                if ($content !== '') $blocks[] = $content;
+            foreach ($rows as $tr) {
+                foreach ($tr->childNodes as $cell) {
+                    if ($cell->nodeType !== XML_ELEMENT_NODE) continue;
+                    if (strtolower($cell->nodeName) !== 'td') continue;
+                    $content = trim($this->childrenToMarkdown($cell, 0));
+                    if ($content !== '') $blocks[] = $content;
+                }
             }
             return $blocks ? "\n\n" . implode("\n\n", $blocks) . "\n\n" : '';
         }
@@ -400,13 +420,22 @@ class ContentConverter
         // Data table (has <th>): if cells contain block-level content (lists, paragraphs)
         // a compressed Markdown table would destroy that structure — render as content
         // sections instead, one per row, separated by horizontal rules.
-        $hasBlockCells = $xpath->query(
-            './/td[.//ul or .//ol or .//li] | .//td[count(.//p) > 1]', $table
-        )->length > 0;
+        $hasBlockCells = false;
+        foreach ($rows as $tr) {
+            foreach ($tr->childNodes as $cell) {
+                if ($cell->nodeType !== XML_ELEMENT_NODE || strtolower($cell->nodeName) !== 'td') continue;
+                $xpath = new \DOMXPath($table->ownerDocument);
+                if ($xpath->query('.//ul or .//ol or .//li', $cell)->length > 0
+                    || $xpath->query('.//p', $cell)->length > 1) {
+                    $hasBlockCells = true;
+                    break 2;
+                }
+            }
+        }
 
         if ($hasBlockCells) {
             $sections = [];
-            foreach ($xpath->query('.//tr', $table) as $tr) {
+            foreach ($rows as $tr) {
                 $parts = [];
                 foreach ($tr->childNodes as $cell) {
                     if ($cell->nodeType !== XML_ELEMENT_NODE) continue;
@@ -422,8 +451,8 @@ class ContentConverter
         }
 
         // Simple data table — convert to Markdown table
-        $rows = [];
-        foreach ($xpath->query('.//tr', $table) as $tr) {
+        $rowCells = [];
+        foreach ($rows as $tr) {
             $cells = [];
             foreach ($tr->childNodes as $cell) {
                 if ($cell->nodeType !== XML_ELEMENT_NODE) continue;
@@ -431,8 +460,9 @@ class ContentConverter
                 if ($tag !== 'td' && $tag !== 'th') continue;
                 $cells[] = trim(preg_replace('/\s+/', ' ', $this->childrenToMarkdown($cell, 0)));
             }
-            if ($cells) $rows[] = $cells;
+            if ($cells) $rowCells[] = $cells;
         }
+        $rows = $rowCells;
 
         if (empty($rows)) return '';
 
@@ -444,6 +474,30 @@ class ContentConverter
             if ($i === 0) $out .= '| ' . implode(' | ', array_fill(0, $cols, '---')) . " |\n";
         }
         return "\n\n" . $out . "\n";
+    }
+
+    // Direct <tr> rows of $table only — through an optional <thead>/<tbody>/<tfoot> layer,
+    // but never descending into a nested <table> that happens to live inside one of this
+    // table's cells. That nested table's own rows get rendered exactly once, via the normal
+    // recursive DOM walk when childrenToMarkdown() reaches its <table> node; collecting rows
+    // with a plain ".//tr" XPath descendant query would double-count them on top of that.
+    private function directRows(\DOMNode $table): array
+    {
+        $rows = [];
+        foreach ($table->childNodes as $child) {
+            if ($child->nodeType !== XML_ELEMENT_NODE) continue;
+            $tag = strtolower($child->nodeName);
+            if ($tag === 'tr') {
+                $rows[] = $child;
+            } elseif (in_array($tag, ['thead', 'tbody', 'tfoot'], true)) {
+                foreach ($child->childNodes as $grandchild) {
+                    if ($grandchild->nodeType === XML_ELEMENT_NODE && strtolower($grandchild->nodeName) === 'tr') {
+                        $rows[] = $grandchild;
+                    }
+                }
+            }
+        }
+        return $rows;
     }
 
     private function handleImage(string $src, string $alt): string
