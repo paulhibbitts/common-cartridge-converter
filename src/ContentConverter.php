@@ -701,11 +701,14 @@ class ContentConverter
     // (a bare <img> immediately followed by a sibling <p> with no blank line between them —
     // otherwise Markdown treats the following text as a soft-wrapped continuation of the
     // same paragraph rather than its own block). An image followed by a space on the same
-    // line, like an inline icon before a short label, is left alone either way.
+    // line, like an inline icon before a short label, is left alone either way. A `*`
+    // immediately after the image is excluded too — that's a bold/italic marker closing a
+    // span the image itself is inside (e.g. a table header cell rendered as "**![img]**"),
+    // not glued-on prose, and breaking it would split the image out of its own bold span.
     private function breakImageFromFollowingText(string $md): string
     {
-        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))(?=[^\s\n])/', "$1\n", $md);
-        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))\n(?!\n)([^\n])/', "$1\n\n$2", $md);
+        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))(?=[^\s\n*])/', "$1\n", $md);
+        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))\n(?!\n)([^\n*])/', "$1\n\n$2", $md);
         return $md;
     }
 }
