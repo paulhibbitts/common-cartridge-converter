@@ -545,6 +545,32 @@ class CourseHubBuilder
         foreach ($this->converter->pendingFiles as $file) {
             $this->attachmentFiles[$pageFolder . '/' . $file['filename']] = $file['localPath'];
         }
+        return $this->constrainMarkerIcons($md);
+    }
+
+    // A small icon immediately paired with a bold label ("<img> <strong>READ</strong>", or a
+    // bold span that wraps both together like "**<img> SUBMIT: Due...**") is a marker/bullet
+    // idiom, not real content – Canvas's own theme CSS keeps these visually consistent
+    // regardless of each icon file's actual pixel dimensions, but that CSS doesn't carry over
+    // to a Grav page, so mismatched source files (e.g. one icon authored at 128×111 next to
+    // siblings at ~60×50) become visibly inconsistent once rendered. Cap just this pattern to a
+    // small fixed width via raw HTML rather than Grav's own "?resize=" URL action syntax, since
+    // that's an opt-in setting (off by default) a given Grav site may not have enabled – leaving
+    // every other image (real content photos, diagrams) untouched at native size.
+    private function constrainMarkerIcons(string $md): string
+    {
+        // Variant 1: image directly followed by its own short bold label.
+        $md = preg_replace(
+            '/!\[([^\]]*)\]\(([^)\s]+)\) ?(\*\*[^*\n]{1,40}\*\*)/',
+            '<img src="$2" alt="$1" width="28"> $3',
+            $md
+        );
+        // Variant 2: a bold span that wraps the image and its label together.
+        $md = preg_replace(
+            '/(\*\*)!\[([^\]]*)\]\(([^)\s]+)\) /',
+            '$1<img src="$3" alt="$2" width="28"> ',
+            $md
+        );
         return $md;
     }
 
