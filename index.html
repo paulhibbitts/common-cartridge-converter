@@ -152,7 +152,11 @@
 
   <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed">For your students, that means a clear weekly structure they can navigate at a glance, visual course cards with icons and instructor info, and search that stays scoped to the current course – a more organized experience than a collection of typical LMS pages, designed to be enjoyable.</p>
 
-  <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed">If needed, any single page can be embedded into Canvas, Moodle, or Brightspace with a URL parameter, keeping students inside the LMS instead of sending them to a separate website – no extra login, no lost context, no wondering if they've left the course. Or run Course Hub standalone and pair it with an LMS or another platform for assignments and grading, a partnership you can change later without migrating your course content again.</p>
+  <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed">If needed, any single page can be embedded into Canvas, Moodle, or Brightspace with a URL parameter, keeping students inside the LMS instead of a separate website. For example:
+    <a href="https://demo.hibbittsdesign.org/grav-helios-course-hub-common-cartridge-it2dda/modules/module-2-beyond-basic-2d-animation/a7-walk-cycle?embedded=true" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-medium text-teal-700 dark:text-teal-400 underline underline-offset-2">
+      this single lesson page
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6.5 3H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 3H13v3.5M13 3L8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>, displayed with no header or sidebar. Or run Course Hub standalone, paired with an LMS or other platform for assignments and grading.</p>
 
   <p class="text-[15px] text-stone-500 dark:text-stone-400 mb-5 leading-relaxed">Convert one of your own courses and browse the resulting Markdown files and images directly – no Grav or Helios installation needed to see what carries over. Or start with a real example:
     <a href="https://demo.hibbittsdesign.org/grav-helios-course-hub-common-cartridge-it2dda/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-medium text-teal-700 dark:text-teal-400 underline underline-offset-2">
@@ -320,6 +324,8 @@
         </ol>
         <p><strong>What's not included?</strong><br>
         Quizzes, discussions, and assignments have no equivalent in Helios Course Hub and are not included. A full count appears in <code>conversion-notes.txt</code> in the ZIP.</p>
+        <p><strong>Can I embed a single page elsewhere?</strong><br>
+        Yes – add <code>?embedded=true</code> (or <code>?chromeless=true</code>) to any page's URL for a content-only view, with no site header, sidebar, or navigation – ready to drop into an iframe inside an LMS like Canvas, Moodle, or Brightspace.</p>
         <p><strong>What happens to your file?</strong><br>
         The <code>.imscc</code> is extracted to a server temp directory, parsed, converted, and packaged. The temp files are immediately deleted after the ZIP is streamed to your browser – nothing is stored on the server.</p>
       </div>
