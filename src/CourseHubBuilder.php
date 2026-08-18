@@ -560,9 +560,14 @@ class CourseHubBuilder
     // every other image (real content photos, diagrams) untouched at native size.
     private function constrainMarkerIcons(string $md): string
     {
-        // Variant 1: image directly followed by its own short bold label.
+        // Variant 1: image directly followed by its own short bold label – tolerates either
+        // a single space (the source HTML had one, e.g. "<img> <strong>") or a blank-line
+        // paragraph break (breakImageFromFollowingText() promotes a zero-space glue to one,
+        // since it can't distinguish that case from an unrelated image+caption glued
+        // together with no separator). Either way, the label is pulled back inline beside
+        // the now width-capped icon rather than left stacked on its own paragraph.
         $md = preg_replace(
-            '/!\[([^\]]*)\]\(([^)\s]+)\) ?(\*\*[^*\n]{1,40}\*\*)/',
+            '/!\[([^\]]*)\]\(([^)\s]+)\)(?: ?|\n\n)(\*\*[^*\n]{1,40}\*\*)/',
             '<img src="$2" alt="$1" width="28"> $3',
             $md
         );
@@ -662,10 +667,20 @@ class CourseHubBuilder
             $zipPath = $img['pageFolder'] . '/' . $img['filename'];
             if (isset($this->imageData[$zipPath])) continue;
 
-            $pattern = '/!\[([^\]]*)\]\(' . preg_quote($img['filename'], '/') . '\)/';
-            $path    = $img['pageFolder'] . '/course-page.md';
+            $path = $img['pageFolder'] . '/course-page.md';
             if (!isset($this->files[$path]) || strpos($this->files[$path], $img['filename']) === false) continue;
-            $this->files[$path] = preg_replace($pattern, '$1', $this->files[$path]);
+
+            $quoted = preg_quote($img['filename'], '/');
+            // Markdown syntax: ![alt](filename)
+            $mdPattern = '/!\[([^\]]*)\]\(' . $quoted . '\)/';
+            // Raw HTML from constrainMarkerIcons(): <img src="filename" alt="alt" width="28">
+            // — a marker-icon reference can already be in this form by the time downloads
+            // finish, since that rewrite happens during page-building, before this runs.
+            $htmlPattern = '/<img src="' . $quoted . '" alt="([^"]*)" width="\d+">/';
+
+            $content = preg_replace($mdPattern, '$1', $this->files[$path]);
+            $content = preg_replace($htmlPattern, '$1', $content);
+            $this->files[$path] = $content;
         }
     }
 
@@ -720,9 +735,23 @@ class CourseHubBuilder
         if (str_starts_with($data, "\x00\x00\x01\x00")) return true;                       // ICO
         if (str_starts_with($data, "II*\x00") || str_starts_with($data, "MM\x00*")) return true; // TIFF
         if (substr($data, 4, 4) === 'ftyp' && stripos(substr($data, 8, 8), 'avif') !== false) return true; // AVIF
+
         $trimmed = ltrim($data);
-        if (stripos($trimmed, '<svg') === 0 || stripos($trimmed, '<?xml') === 0) return true; // SVG
-        return false;
+        if (stripos($trimmed, '<svg') === 0) return true; // bare SVG
+        if (stripos($trimmed, '<?xml') === 0) {
+            // XML-wrapped SVG — accept only if an <svg tag actually follows nearby; a bare
+            // XML declaration alone is more likely a non-image XML/HTML response than an image.
+            return stripos(substr($trimmed, 0, 300), '<svg') !== false;
+        }
+
+        // No recognized signature. Reject only when the content clearly looks like text or
+        // markup — the actual failure mode this check exists to catch (e.g. an authenticated
+        // endpoint redirecting to a login page instead of the image). Accept anything else:
+        // a real image in a format not explicitly checked above (e.g. HEIC) shouldn't be
+        // silently dropped just because its signature isn't in this list.
+        if (preg_match('/^\s*<(!doctype|html)/i', $data)) return false;
+        if (preg_match('/^[\x09\x0A\x0D\x20-\x7E]+$/', substr($data, 0, 200))) return false;
+        return true;
     }
 
     // SSRF guard: an <img> src comes straight from uploaded course content, so before
