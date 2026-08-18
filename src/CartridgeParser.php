@@ -58,6 +58,7 @@ class CartridgeParser
         $this->computeCourseSlug();
         $this->parseModules();
         $this->loadWikiPages();
+        $this->addOrphanedWikiPages();
         $this->parseSyllabus();
     }
 
@@ -483,6 +484,49 @@ class CartridgeParser
         foreach ($this->webPagePaths as $slug => $path) {
             $this->wikiPages[$slug] = file_get_contents($path);
         }
+    }
+
+    // Canvas exports keep every wiki page a course ever had in wiki_content/ — drafts,
+    // unpublished pages, pages removed from a module — so most of them being unreferenced
+    // by the module structure is normal and expected, not a sign anything was lost.
+    // But when a manifest has NO usable module structure at all (parseModules() found
+    // nothing), an unreferenced wiki_content page is the only content the cartridge has —
+    // dropping it silently would turn the whole conversion into an empty shell. Only that
+    // narrow case is worth recovering into its own module; do not run this when real
+    // structure already exists, or genuine Canvas page-history noise gets pulled in too.
+    private function addOrphanedWikiPages(): void
+    {
+        if (!empty($this->modules)) return;
+
+        $orphanSlugs = array_keys($this->wikiPages);
+        if (empty($orphanSlugs)) return;
+
+        $items = [];
+        foreach ($orphanSlugs as $slug) {
+            $items[] = [
+                'type'          => 'WikiPage',
+                'title'         => $this->extractHtmlTitle($this->wikiPages[$slug]) ?: Helpers::titleFromSlug($slug),
+                'slug'          => $slug,
+                'url'           => null,
+                'filePath'      => null,
+                'group'         => null,
+                'identifierref' => null,
+                'indent'        => 0,
+            ];
+        }
+
+        $this->modules[] = ['title' => 'Additional Pages', 'items' => $items];
+        $this->warnings[] = count($items) . ' page(s) were not linked into the course structure '
+            . 'and were recovered under an "Additional Pages" module.';
+    }
+
+    private function extractHtmlTitle(string $html): ?string
+    {
+        if (preg_match('/<title[^>]*>(.*?)<\/title>/si', $html, $m)) {
+            $title = trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES | ENT_HTML5));
+            if ($title !== '') return $title;
+        }
+        return null;
     }
 
     private function parseSyllabus(): void

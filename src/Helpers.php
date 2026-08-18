@@ -19,6 +19,13 @@ class Helpers
         return str_replace(["'", "\n"], ["''", ' '], $text);
     }
 
+    // Humanize a file/resource slug into a title when no better source is available
+    // (e.g. "our-purpose" -> "Our Purpose")
+    public static function titleFromSlug(string $slug): string
+    {
+        return ucwords(str_replace(['-', '_'], ' ', $slug));
+    }
+
     public static function numberedFolder(int $n, string $slug): string
     {
         return sprintf('%02d', $n) . '.' . $slug;
