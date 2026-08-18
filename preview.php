@@ -150,12 +150,27 @@ function shouldExtractZipEntry(string $entryName, bool $skipFiles): bool
  * 30.modules/course-page.md instead. moduleGroupFromPath() below handles
  * both shapes: it groups by the module subfolder when one exists, and falls
  * back to a fixed group for the flattened landing page.
+ *
+ * Some courses are legitimately built from very short pages throughout (e.g. each page is
+ * just a sentence pointing to a linked PDF) — if the length-filtered pass finds nothing
+ * anywhere in the whole course, that's not a course with no content, just a course with no
+ * *long* content, so fall back to the best available pages regardless of length rather than
+ * showing an empty preview.
  */
 function pickPreviewPages(array $files, array $imageData): array
 {
+    $selected = collectPreviewPages($files, $imageData, MIN_PREVIEW_PAGE_LENGTH);
+    if (empty($selected)) {
+        $selected = collectPreviewPages($files, $imageData, 1);
+    }
+    return array_slice($selected, 0, MAX_PREVIEW_PAGES);
+}
+
+function collectPreviewPages(array $files, array $imageData, int $minLength): array
+{
     $selected = [];
 
-    $home = homePageCandidate($files);
+    $home = homePageCandidate($files, $minLength);
     if ($home) {
         $selected[] = $home;
     }
@@ -167,7 +182,7 @@ function pickPreviewPages(array $files, array $imageData): array
         }
 
         $body = cleanPageBody($content);
-        if (strlen($body) < MIN_PREVIEW_PAGE_LENGTH) {
+        if (strlen($body) < $minLength) {
             continue; // skip thin/stub pages
         }
 
@@ -179,21 +194,21 @@ function pickPreviewPages(array $files, array $imageData): array
         $selected[] = pickBestCandidate($candidates, $imageData);
     }
 
-    return array_slice($selected, 0, MAX_PREVIEW_PAGES);
+    return $selected;
 }
 
 // The course Home page only has real content when the first module's title was detected as
 // an intro (see CourseHubBuilder::buildModules()'s $introKeywords check) — in that case it's
 // the site's actual landing page and worth showing first. Otherwise it's just the bare
 // conversion notice with nothing else, and not worth including at all.
-function homePageCandidate(array $files): ?array
+function homePageCandidate(array $files, int $minLength): ?array
 {
     foreach ($files as $path => $content) {
         if (!str_contains($path, '/10.home/') || !str_ends_with($path, 'course-page.md')) {
             continue;
         }
         $body = cleanPageBody($content);
-        if (strlen($body) < MIN_PREVIEW_PAGE_LENGTH) {
+        if (strlen($body) < $minLength) {
             return null; // no intro module detected — nothing but the conversion notice
         }
         return ['path' => $path, 'content' => $content, 'body' => $body];
