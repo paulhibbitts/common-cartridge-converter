@@ -106,6 +106,7 @@ class CourseHubBuilder
         if ($this->includeSyllabus || $hasSyllabusContent) $this->buildSyllabus();
 
         $this->downloadPendingImages();
+        $this->dropFailedImageReferences();
         $this->resolveWikiRefLinks();
         $this->buildConversionNotes();
 
@@ -649,6 +650,25 @@ class CourseHubBuilder
         }
     }
 
+    // Any pendingImage whose data never made it into $imageData failed to resolve (bad or
+    // inaccessible URL, download timeout, or failed the content check in downloadImage() —
+    // e.g. an authenticated Canvas endpoint that redirected to a login page instead of
+    // returning real image bytes). Rather than leave a guaranteed-broken image reference in
+    // the final site, drop it back to plain alt text, matching how an unresolvable
+    // Canvas-internal reference is already handled elsewhere in ContentConverter.
+    private function dropFailedImageReferences(): void
+    {
+        foreach ($this->pendingImages as $img) {
+            $zipPath = $img['pageFolder'] . '/' . $img['filename'];
+            if (isset($this->imageData[$zipPath])) continue;
+
+            $pattern = '/!\[([^\]]*)\]\(' . preg_quote($img['filename'], '/') . '\)/';
+            $path    = $img['pageFolder'] . '/course-page.md';
+            if (!isset($this->files[$path]) || strpos($this->files[$path], $img['filename']) === false) continue;
+            $this->files[$path] = preg_replace($pattern, '$1', $this->files[$path]);
+        }
+    }
+
     private function downloadImage(string $url): ?string
     {
         if (!$this->isSafeImageUrl($url)) {
@@ -671,13 +691,38 @@ class CourseHubBuilder
             $data     = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
-            return ($data && strlen($data) > 0 && $httpCode === 200) ? $data : null;
+            if (!$data || strlen($data) === 0 || $httpCode !== 200) return null;
+            return $this->looksLikeImage($data) ? $data : null;
         }
 
         // Fallback: file_get_contents (less reliable timeout enforcement)
         $ctx  = stream_context_create(['http' => ['timeout' => 5, 'ignore_errors' => true]]);
         $data = @file_get_contents($url, false, $ctx);
-        return ($data !== false && strlen($data) > 0) ? $data : null;
+        if ($data === false || strlen($data) === 0) return null;
+        return $this->looksLikeImage($data) ? $data : null;
+    }
+
+    // Validates actual response content rather than trusting the URL or a Content-Type
+    // header (which a misbehaving or authenticated endpoint can misreport) — e.g. an
+    // authenticated Canvas file-preview URL redirects unauthenticated requests to a login
+    // page, which curl/file_get_contents will happily "succeed" in fetching as 200 OK HTML;
+    // without this check that HTML would be silently bundled into the ZIP as if it were the
+    // image. Checks magic-byte signatures for the common raster formats plus a text-based
+    // check for SVG.
+    private function looksLikeImage(string $data): bool
+    {
+        if (strlen($data) < 12) return false;
+        if (str_starts_with($data, "\xFF\xD8\xFF")) return true;                          // JPEG
+        if (str_starts_with($data, "\x89PNG\x0D\x0A\x1A\x0A")) return true;               // PNG
+        if (str_starts_with($data, 'GIF87a') || str_starts_with($data, 'GIF89a')) return true; // GIF
+        if (str_starts_with($data, 'RIFF') && substr($data, 8, 4) === 'WEBP') return true; // WEBP
+        if (str_starts_with($data, 'BM')) return true;                                     // BMP
+        if (str_starts_with($data, "\x00\x00\x01\x00")) return true;                       // ICO
+        if (str_starts_with($data, "II*\x00") || str_starts_with($data, "MM\x00*")) return true; // TIFF
+        if (substr($data, 4, 4) === 'ftyp' && stripos(substr($data, 8, 8), 'avif') !== false) return true; // AVIF
+        $trimmed = ltrim($data);
+        if (stripos($trimmed, '<svg') === 0 || stripos($trimmed, '<?xml') === 0) return true; // SVG
+        return false;
     }
 
     // SSRF guard: an <img> src comes straight from uploaded course content, so before

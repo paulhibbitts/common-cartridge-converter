@@ -471,14 +471,20 @@ class ContentConverter
         // Absolute URL
         if (filter_var($src, FILTER_VALIDATE_URL)) {
             if (!$this->skipImageDownload) {
+                // Queued regardless of whether the URL's path looks like an image by
+                // extension (e.g. a CDN or Canvas file-preview endpoint with none) — the
+                // later download attempt validates the actual response content instead of
+                // guessing from the filename, and drops the reference to plain alt text if
+                // it turns out not to be real image data (see the builder's image download
+                // step) rather than leaving a guaranteed-broken reference either way.
                 $candidate = $this->filenameFromUrl($src);
-                if (!$this->hasImageExtension($candidate)) return '';
-                $filename = $this->uniqueFilename($candidate);
+                $filename  = $this->uniqueFilename($candidate);
                 $this->pendingImages[] = ['filename' => $filename, 'localPath' => null, 'url' => $src];
                 return '![' . $alt . '](' . $filename . ')';
             }
-            // Skip download: keep URL so image displays from its remote source
-            if (!$this->hasImageExtension($this->filenameFromUrl($src))) return '';
+            // Skip download: keep the original URL so the image displays from its remote
+            // source — there's no way to validate it without fetching it, and this flag
+            // means the caller explicitly opted out of that.
             return '![' . $alt . '](' . $src . ')';
         }
 
@@ -494,8 +500,11 @@ class ContentConverter
 
     private function uniqueFilename(string $base): string
     {
-        // Replace spaces so Markdown image/link syntax doesn't break
-        $base  = preg_replace('/\s+/', '-', $base);
+        // Replace spaces and parentheses/brackets so Markdown image/link syntax doesn't
+        // break – a `)` inside the filename (e.g. "photo (1).jpg") closes the "![alt](url)"
+        // syntax early, at the first `)` rather than the real end of the filename.
+        $base  = preg_replace('/[\s()\[\]]+/', '-', $base);
+        $base  = trim($base, '-');
         $count = ($this->imageFilenames[$base] ?? 0) + 1;
         $this->imageFilenames[$base] = $count;
         if ($count === 1) return $base;
@@ -701,14 +710,31 @@ class ContentConverter
     // (a bare <img> immediately followed by a sibling <p> with no blank line between them —
     // otherwise Markdown treats the following text as a soft-wrapped continuation of the
     // same paragraph rather than its own block). An image followed by a space on the same
-    // line, like an inline icon before a short label, is left alone either way. A `*`
-    // immediately after the image is excluded too — that's a bold/italic marker closing a
-    // span the image itself is inside (e.g. a table header cell rendered as "**![img]**"),
-    // not glued-on prose, and breaking it would split the image out of its own bold span.
+    // line, like an inline icon before a short label, is left alone either way.
+    //
+    // One exception, protected before the general rule runs: an image that is *entirely*
+    // wrapped in its own bold/italic span with nothing else inside, like "**![img]**" (e.g. a
+    // table header cell rendered that way) — splitting that would insert a break between the
+    // image and its own closing marker, producing invalid Markdown (a bold span can't validly
+    // cross a blank line). An image merely followed by a *different*, separate emphasis span
+    // glued on with no space — e.g. an <img> immediately followed by a sibling <em>caption</em>
+    // — still gets split as before, since that's real glued-on content, not a wrapper.
     private function breakImageFromFollowingText(string $md): string
     {
-        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))(?=[^\s\n*])/', "$1\n", $md);
-        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))\n(?!\n)([^\n*])/', "$1\n\n$2", $md);
-        return $md;
+        $placeholders = [];
+        $md = preg_replace_callback(
+            '/(\*{1,2})(\!\[[^\]]*\]\([^)]+\))\1/',
+            function ($m) use (&$placeholders) {
+                $key = "\x00WRAPPEDIMG" . count($placeholders) . "\x00";
+                $placeholders[$key] = $m[0];
+                return $key;
+            },
+            $md
+        );
+
+        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))(?=[^\s\n])/', "$1\n", $md);
+        $md = preg_replace('/(\!\[[^\]]*\]\([^)]+\))\n(?!\n)([^\n])/', "$1\n\n$2", $md);
+
+        return $placeholders ? strtr($md, $placeholders) : $md;
     }
 }
