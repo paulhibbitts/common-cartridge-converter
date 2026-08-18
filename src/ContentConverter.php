@@ -199,6 +199,12 @@ class ContentConverter
             // (decoded from &lt;ul&gt; etc. in source HTML) and must not be treated as HTML
             // by the markdown renderer. Also handles stray </P> Canvas emits near iframes.
             $text = str_replace(['<', '>'], ['&lt;', '&gt;'], $text);
+            // A literal "*" the author typed (e.g. an informal footnote marker like
+            // "*Please note...") is real text, not markdown syntax — left unescaped, it can
+            // combine with a "*"/"**" this converter later wraps around the same text (e.g.
+            // the em/strong cases below) into a mismatched-looking run, or with some other
+            // stray "*" elsewhere in the document into unintended emphasis.
+            $text = str_replace('*', '\*', $text);
             return $text;
         }
 

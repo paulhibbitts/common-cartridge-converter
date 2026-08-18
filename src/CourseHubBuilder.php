@@ -175,49 +175,40 @@ class CourseHubBuilder
         }
     }
 
+    // Home only ever holds the intro module's own landing content – any other items in
+    // that module (indent-1 children, or any ExternalUrl/Attachment) become their own
+    // numbered child pages via buildChildPage(), the same split buildModuleChapter() applies
+    // to every other module. Home previously flattened the whole module onto one page
+    // regardless of indent, which could pack a dozen unrelated pages worth of content onto
+    // the site's single landing page instead of giving each its own place in the nav tree.
     private function buildHomePage(?array $mod): void
     {
-        $base  = "$this->courseBase/10.home";
-        $body  = '';
-        $links = [];
+        $base = "$this->courseBase/10.home";
 
-        if ($mod) {
-            foreach ($mod['items'] as $item) {
-                if ($item['type'] === 'WikiPage') {
-                    $html = $this->getWikiHtml($item);
-                    if ($html) $body .= $this->convertAndCollectImages($html, $base) . "\n\n";
-                    $this->registerRoute($item['slug'], "$base/course-page.md");
-                    $this->pageCount++;
-                } elseif ($item['type'] === 'ExternalUrl') {
-                    $url = $item['url'] ?? '';
-                    // rtrim: externalUrlBody()'s own trailing "\n" would double up with the "\n\n" implode() below.
-                    if ($url) $links[] = rtrim($this->externalUrlBody($url, $this->cleanTitle($item['title'])));
-                    $this->externalUrlCount++;
-                } elseif ($item['type'] === 'Attachment') {
-                    $filePath = $item['filePath'] ?? '';
-                    $cleanedItemTitle = $this->cleanTitle($item['title']);
-                    if ($filePath && !$this->skipFiles) {
-                        $filename = basename($filePath);
-                        $zipPath  = "$this->courseBase/files/$filename";
-                        $this->attachmentFiles[$zipPath] = $filePath;
-                        $links[] = "[$cleanedItemTitle](../files/$filename)";
-                    } else {
-                        $links[] = "**$cleanedItemTitle** — attached file not included (see conversion-notes.txt)";
-                    }
-                    $this->attachmentCount++;
-                }
-            }
+        if (!$mod) {
+            $fm = $this->pageFrontmatter('Home', [], true);
+            $this->addFile("$base/course-page.md", $fm . $this->conversionNotice());
+            return;
         }
 
-        if ($links) {
-            // No leading "\n" — $body already ends in "\n\n" whenever it has WikiPage content above.
-            $body .= implode("\n\n", $links) . "\n";
-        }
+        [$landingItem, $childItems] = $this->splitItems($mod);
 
-        $title = $mod ? Helpers::yamlEscape($this->cleanTitle($mod['title'])) : 'Home';
+        $landingHtml = $landingItem ? $this->getWikiHtml($landingItem) : '';
+        $landingBody = $landingHtml ? $this->convertAndCollectImages($landingHtml, $base) : '';
+        if ($landingItem) $this->registerRoute($landingItem['slug'], "$base/course-page.md");
+
+        $title = Helpers::yamlEscape($this->cleanTitle($mod['title']));
         $fm    = $this->pageFrontmatter($title, [], true);
-        $this->addFile("$base/course-page.md", $fm . $this->conversionNotice() . trim($body) . "\n");
-        if ($mod) $this->trackDropped($mod);
+        $this->addFile("$base/course-page.md", $fm . $this->conversionNotice() . trim($landingBody) . "\n");
+        $this->pageCount++;
+
+        $childN = 1;
+        foreach ($childItems as $item) {
+            $this->buildChildPage($base, $item, $childN, $mod['title']);
+            $childN++;
+        }
+
+        $this->trackDropped($mod);
     }
 
     // A brief, unmissable notice on the course home page — so anyone who later browses
